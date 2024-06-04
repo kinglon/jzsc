@@ -1,7 +1,8 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "datamodel.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -14,6 +15,35 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+private:
+    void initCtrls();
+
+    void updateButtonStatus();
+
+    void showTip(QString tip);
+
+    void addCollectLog(const QString& log);
+
+private:
+    void startCollect();
+
+    void continueCollect();
+
+    void stopCollect();
+
+    void finishCurrentTask(const DataModel& dataModel);
+
+    QString saveCollectResult();
+
+private slots:
+    void onCollectNextTask();
+
+signals:
+    void collectNextTask();
+
+private:
+    bool m_isCollecting = false;
 
 private:
     Ui::MainWindow *ui;

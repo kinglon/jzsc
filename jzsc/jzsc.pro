@@ -16,6 +16,8 @@ SOURCES += \
     Utility/LogBuffer.cpp \
     Utility/LogUtil.cpp \
     browserwindow.cpp \
+    collectstatusmanager.cpp \
+    datacollector.cpp \
     datamodel.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -30,6 +32,8 @@ HEADERS += \
     Utility/LogMacro.h \
     Utility/LogUtil.h \
     browserwindow.h \
+    collectstatusmanager.h \
+    datacollector.h \
     datamodel.h \
     mainwindow.h \
     settingmanager.h

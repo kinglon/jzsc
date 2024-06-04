@@ -28,7 +28,7 @@ public:
     QString m_endDate;
 
     // 数据来源
-    QString m_dateSource;
+    QString m_dataSource;
 
     // 备注
     QString m_remark;

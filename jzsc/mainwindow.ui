@@ -14,7 +14,7 @@
    <string>数据采集工具</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -37,7 +37,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="idEdit">
+        <widget class="QLineEdit" name="codePrefixEdit">
          <property name="text">
           <string>520402</string>
          </property>
