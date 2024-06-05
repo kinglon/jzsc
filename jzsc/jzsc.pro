@@ -21,6 +21,7 @@ SOURCES += \
     datamodel.cpp \
     main.cpp \
     mainwindow.cpp \
+    qcompressor.cpp \
     settingmanager.cpp
 
 HEADERS += \
@@ -36,6 +37,7 @@ HEADERS += \
     datacollector.h \
     datamodel.h \
     mainwindow.h \
+    qcompressor.h \
     settingmanager.h
 
 FORMS += \
@@ -46,6 +48,9 @@ FORMS += \
 QMAKE_CFLAGS_RELEASE += /Zi
 QMAKE_CXXFLAGS_RELEASE += /Zi
 QMAKE_LFLAGS_RELEASE += /DEBUG
+
+# Enable log context
+DEFINES += QT_MESSAGELOGCONTEXT
 
 # QXlsx code for Application Qt project
 QXLSX_PARENTPATH=./QXlsx         # current QXlsx path is . (. means curret directory)

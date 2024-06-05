@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     initCtrls();
 
+    BrowserWindow::getInstance()->setHideWhenClose(true);
     BrowserWindow::getInstance()->load(QUrl("https://jzsc.mohurd.gov.cn/data/project/detail?id=3175497"));
 }
 
@@ -39,6 +40,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::initCtrls()
 {
+    updateButtonStatus();
+
     connect(ui->startButton, &QPushButton::clicked, [this]() {
             startCollect();
         });
@@ -143,7 +146,7 @@ void MainWindow::onCollectNextTask()
 
     addCollectLog(QString::fromWCharArray(L"编号%1开始采集").arg(taskCode));
     DataCollector* collector = new DataCollector(this);
-    collector->SetCode(taskCode);
+    collector->setCode(taskCode);
     connect(collector, &DataCollector::runFinish, [collector, taskCode, this](int errorCode) {
         if (errorCode == COLLECT_SUCCESS)
         {
@@ -157,7 +160,7 @@ void MainWindow::onCollectNextTask()
         }
         else if (errorCode == COLLECT_ERROR_NOT_LOGIN)
         {
-            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请手工验证").arg(taskCode));
+            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请人工验证").arg(taskCode));
             m_isCollecting = false;
             updateButtonStatus();
         }
@@ -196,8 +199,14 @@ void MainWindow::finishCurrentTask(int errorCode, const QVector<DataModel>& data
     }
     else
     {
-        // 异步调用
-        emit collectNextTask();
+        int interval = ui->intervalEdit->text().toInt();
+        if (interval == 0)
+        {
+            interval = 3;
+        }
+        QTimer::singleShot(interval*1000, [this]() {
+            emit collectNextTask();
+        });
     }
 }
 
@@ -207,7 +216,7 @@ bool MainWindow::saveCollectResult()
     QString excelFileName = QString::fromWCharArray(L"采集结果.xlsx");
     QString srcExcelFilePath = QString::fromStdWString(CImPath::GetConfPath()) + excelFileName;
     QDateTime dateTime = QDateTime::currentDateTime();
-    QString destFileName = dateTime.toString("yyyyMMdd_hhmm_采集结果.xlsx");
+    QString destFileName = dateTime.toString(QString::fromWCharArray(L"yyyyMMdd_hhmm_")) + excelFileName;
     QString destExcelFilePath = QString::fromStdWString(CImPath::GetDataPath()) + destFileName;
     ::DeleteFile(destExcelFilePath.toStdWString().c_str());
     if (!::CopyFile(srcExcelFilePath.toStdWString().c_str(), destExcelFilePath.toStdWString().c_str(), TRUE))

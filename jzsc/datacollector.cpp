@@ -7,8 +7,12 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QCryptographicHash>
+#include <QNetworkProxy>
 #include "qaesencryption.h"
 #include "browserwindow.h"
+#include "qcompressor.h"
+
+QNetworkAccessManager *DataCollector::m_networkAccessManager = nullptr;
 
 DataCollector::DataCollector(QObject *parent)
     : QObject{parent}
@@ -29,7 +33,8 @@ bool DataCollector::run()
 
     // 获取accessToken
     connect(BrowserWindow::getInstance(), &BrowserWindow::runJsCodeFinished, this, &DataCollector::runJsCodeFinished);
-    BrowserWindow::getInstance()->runJsCode("localStorage");
+    QString jsCode = "var jsResult = {};jsResult['accessToken'] = '';if (localStorage.accessToken){jsResult['accessToken'] = localStorage.accessToken;} jsResult;";
+    BrowserWindow::getInstance()->runJsCode(jsCode);
     m_timer = new QTimer(this);
     m_timer->setInterval(3000);
     connect(m_timer, &QTimer::timeout, [this]() {
@@ -38,6 +43,15 @@ bool DataCollector::run()
         emit runFinish(COLLECT_ERROR_NOT_LOGIN);
     });
     m_timer->start();
+
+    // 初始化网络请求
+    if (m_networkAccessManager == nullptr)
+    {
+        m_networkAccessManager = new QNetworkAccessManager();
+        m_networkAccessManager->setProxy(QNetworkProxy());
+        m_networkAccessManager->setTransferTimeout(3000);
+    }
+    connect(m_networkAccessManager, &QNetworkAccessManager::finished, this, &DataCollector::onHttpFinished);
 
     return true;
 }
@@ -56,79 +70,32 @@ QByteArray DataCollector::intArrayToByteArray(int datas[], int size)
 
 void DataCollector::httpGetData()
 {
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    manager->setTransferTimeout(3000);
-    connect(manager, &QNetworkAccessManager::finished, this, &DataCollector::onHttpFinished);
+    if (m_networkAccessManager == nullptr)
+    {
+        return;
+    }
 
     QNetworkRequest request;
     QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectFinishManage?jsxmCode=%1&pg=0&pgsz=15").arg(m_code));
     request.setUrl(url);
 
     // 设置头部
-    request.setRawHeader("Content-Type", "application/json");
     request.setRawHeader("Accept", "application/json, text/plain, */*");
     request.setRawHeader("Accept-Encoding", "gzip, deflate, br, zstd");
-    request.setRawHeader("Origin", "https://jzsc.mohurd.gov.cn");
-    request.setRawHeader("Referer", "https://jzsc.mohurd.gov.cn");
+    request.setRawHeader("Origin", "https://jzsc.mohurd.gov.cn/");
+    request.setRawHeader("Referer", "https://jzsc.mohurd.gov.cn/");
     request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
     request.setRawHeader("Accesstoken", m_accessToken.toUtf8());
     request.setRawHeader("Timeout", "30000");
     request.setRawHeader("V", "231012");
-    manager->get(request);
+    m_networkAccessManager->get(request);
 }
 
 QByteArray DataCollector::decode(const QByteArray& data)
 {
     QByteArray dataAfterHexDecode = QByteArray::fromHex(data);
-    QString base64Data = dataAfterHexDecode.toBase64();
-    QVector<int> r;
-    int o = 0;
-    int s = 0;
-    int pos = base64Data.indexOf('=');
-    int t = pos == -1? base64Data.length() : pos;
-    while (s < t)
-    {
-        if (s % 4 != 0)
-        {
-            int value = base64Data[s - 1].unicode();
-            if (value >= m_reverseMapData.size())
-            {
-                qCritical("the value(%d) is greater than the length of the reverse map data", value);
-                return QByteArray();
-            }
-            int a = m_reverseMapData[value] << (s % 4) * 2;
-
-            value = base64Data[s].unicode();
-            if (value >= m_reverseMapData.size())
-            {
-                qCritical("the value(%d) is greater than the length of the reverse map data", value);
-                return QByteArray();
-            }
-            int l = m_reverseMapData[value] >> (6 - (s % 4) * 2);
-
-            int i = o / 4;
-            int v = ((a | l) << (24 - o % 4 * 8)) & 0xFFFFFFFF;
-            if (i >= r.size())
-            {
-                r.append(v);
-            }
-            else
-            {
-                r[i] |= v;
-            }
-            o += 1;
-        }
-        s += 1;
-    }
-
-    QByteArray dataAfterReverse;
-    foreach (int val, r)
-    {
-        dataAfterReverse.append(static_cast<char>(val));
-    }
-
-    QAESEncryption encryption(QAESEncryption::AES_256, QAESEncryption::CBC, QAESEncryption::PKCS7);
-    QByteArray decodeText = encryption.decode(dataAfterReverse, m_key, m_iv);
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::CBC, QAESEncryption::PKCS7);
+    QByteArray decodeText = encryption.decode(dataAfterHexDecode, m_key, m_iv);
     decodeText = encryption.removePadding(decodeText);
     return decodeText;
 }
@@ -142,13 +109,12 @@ void DataCollector::killTimer()
     }
 }
 
-void DataCollector::onHttpFinished(QNetworkReply *reply)
+void DataCollector::processHttpReply(QNetworkReply *reply)
 {
-    reply->deleteLater();
     if (reply->error() != QNetworkReply::NoError)
     {
         qCritical("failed to send the http request, error: %d", reply->error());
-        if (m_retryCount >= 2)
+        if (m_retryCount >= 4)
         {
             emit runFinish(COLLECT_ERROR_CONNECTION_FAILED);
         }
@@ -162,14 +128,27 @@ void DataCollector::onHttpFinished(QNetworkReply *reply)
     }
     else
     {
-        QByteArray data = decode(reply->readAll());
-        if (data.size() == 0)
+        QByteArray rawData = reply->readAll();
+        if (reply->rawHeader("Content-Encoding").toStdString() == "gzip")
+        {
+            QByteArray decompressData;
+            if (!QCompressor::gzipDecompress(rawData, decompressData))
+            {
+                qCritical("failed to decompress the gzip response data");
+                emit runFinish(COLLECT_ERROR);
+                return;
+            }
+            rawData = decompressData;
+        }
+
+        QByteArray decodeData = decode(rawData);
+        if (decodeData.size() == 0)
         {
             emit runFinish(COLLECT_ERROR);
             return;
         }
 
-        QJsonDocument jsonDocument = QJsonDocument::fromJson(data);
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(decodeData);
         if (jsonDocument.isNull() || jsonDocument.isEmpty())
         {
             qCritical("failed to parse the json data");
@@ -219,8 +198,19 @@ void DataCollector::onHttpFinished(QNetworkReply *reply)
     }
 }
 
+void DataCollector::onHttpFinished(QNetworkReply *reply)
+{
+    processHttpReply(reply);
+    reply->deleteLater();
+}
+
 void DataCollector::runJsCodeFinished(const QVariant& result)
 {
+    if (result.type() != QVariant::Map)
+    {
+        return;
+    }
+
     QVariantMap storageItems = result.toMap();
     if (storageItems.contains("accessToken"))
     {
@@ -248,11 +238,11 @@ void DataCollector::parseDatas(const QJsonArray& datas)
         if (itemJson.contains("RN"))
         {
             int rn = itemJson["RN"].toInt();
-            if (rn == 1)
+            if (rn == 0)
             {
                 dataModel.m_type = QString::fromWCharArray(L"房屋建筑工程");
             }
-            else if (rn == 2)
+            else if (rn == 1)
             {
                 dataModel.m_type = QString::fromWCharArray(L"市政工程");
             }
@@ -317,5 +307,7 @@ void DataCollector::parseDatas(const QJsonArray& datas)
         {
             dataModel.m_dataLevel = itemJson["DATALEVEL"].toString();
         }
+
+        m_dataModel.append(dataModel);
     }
 }

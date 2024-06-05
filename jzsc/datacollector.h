@@ -5,6 +5,7 @@
 #include <QVector>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QNetworkAccessManager>
 #include "datamodel.h"
 
 // 采集失败原因
@@ -21,7 +22,7 @@ public:
     explicit DataCollector(QObject *parent = nullptr);
 
 public:
-    void SetCode(QString code) { m_code = code; }
+    void setCode(QString code) { m_code = code; }
 
     bool run();
 
@@ -31,6 +32,8 @@ public:
 
 private:
     void httpGetData();
+
+    void processHttpReply(QNetworkReply *reply);
 
     QByteArray decode(const QByteArray& data);
 
@@ -58,11 +61,11 @@ private:
 
     QString m_accessToken;
 
-    QVector<int> m_reverseMapData;
-
     QByteArray m_key;
 
     QByteArray m_iv;
+
+    static QNetworkAccessManager *m_networkAccessManager;
 };
 
 #endif // DATACOLLECTOR_H

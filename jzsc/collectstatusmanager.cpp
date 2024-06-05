@@ -72,7 +72,7 @@ QString CollectStatusManager::getNextTask()
         return "";
     }
 
-    QString code = m_codePrefix + m_currentDate.toString("yy-MM-dd") + QString("%04d").arg(m_nextIndex);
+    QString code = m_codePrefix + m_currentDate.toString("yyMMdd") + QString("%1").arg(m_nextIndex, 4, 10, QLatin1Char('0'));
     return code;
 }
 

@@ -52,7 +52,10 @@ public:
     bool captrueImage(const QString& savePath);
 
     // 执行JS脚本
-    void runJsCode(const QString& jsCode);    
+    void runJsCode(const QString& jsCode);
+
+    // 设置关闭窗口是否变成隐藏窗口
+    void setHideWhenClose(bool hideWhenClose) { m_hideWhenClose = hideWhenClose;}
 
 signals:
     // 加载网页完成
@@ -71,6 +74,9 @@ private:
     QWebEngineView* m_webView = nullptr;
 
     bool m_canClose = false;
+
+    // 关闭窗口是否变成隐藏窗口
+    bool m_hideWhenClose = false;
 };
 
 #endif // BROWSERWINDOW_H
