@@ -18,6 +18,12 @@ public:
     // 数据等级
     QString m_dataLevel;
 
+    // 施工许可证编号
+    QString m_buildLicenseNum;
+
+    // 实际造价（万元）
+    QString m_factCost;
+
     // 实际建设规模
     QString m_factSize;
 

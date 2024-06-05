@@ -28,6 +28,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::collectNextTask, this, &MainWindow::onCollectNextTask, Qt::QueuedConnection);
 
     initCtrls();
+
+    BrowserWindow::getInstance()->load(QUrl("https://jzsc.mohurd.gov.cn/data/project/detail?id=3175497"));
 }
 
 MainWindow::~MainWindow()
@@ -119,15 +121,12 @@ void MainWindow::stopCollect()
     m_isCollecting = false;
     updateButtonStatus();
 
-    // 保存采集结果并打开保存目录
-    QString resultFilePath = saveCollectResult();
-    if (resultFilePath.isEmpty())
+    // 保存采集结果并打开保存目录    
+    if (!saveCollectResult())
     {
         showTip(QString::fromWCharArray(L"保存采集结果到表格失败"));
         return;
     }
-
-    QDesktopServices::openUrl(QUrl::fromLocalFile(resultFilePath));
 
     CollectStatusManager::getInstance()->reset();
     updateButtonStatus();
@@ -144,27 +143,33 @@ void MainWindow::onCollectNextTask()
 
     addCollectLog(QString::fromWCharArray(L"编号%1开始采集").arg(taskCode));
     DataCollector* collector = new DataCollector(this);
-    collector->getDataModel().m_id = taskCode;
-    connect(collector, &DataCollector::runFinish, [collector, this](int errorCode) {
+    collector->SetCode(taskCode);
+    connect(collector, &DataCollector::runFinish, [collector, taskCode, this](int errorCode) {
         if (errorCode == COLLECT_SUCCESS)
         {
-            addCollectLog(QString::fromWCharArray(L"编号%1完成采集").arg(collector->getDataModel().m_id));
-            finishCurrentTask(collector->getDataModel());
+            addCollectLog(QString::fromWCharArray(L"编号%1完成采集").arg(taskCode));
+            finishCurrentTask(errorCode, collector->getDataModel());
         }
         else if (errorCode == COLLECT_ERROR_INVALID_CODE)
         {
-            addCollectLog(QString::fromWCharArray(L"编号%1不存在，采集下一天数据").arg(collector->getDataModel().m_id));
-            finishCurrentTask(DataModel());
+            addCollectLog(QString::fromWCharArray(L"编号%1不存在，采集下一天数据").arg(taskCode));
+            finishCurrentTask(errorCode,  QVector<DataModel>());
         }
         else if (errorCode == COLLECT_ERROR_NOT_LOGIN)
         {
-            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请手工验证").arg(collector->getDataModel().m_id));
+            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请手工验证").arg(taskCode));
             m_isCollecting = false;
             updateButtonStatus();
         }
-        else if (errorCode == COLLECT_ERROR_NOT_LOGIN)
+        else if (errorCode == COLLECT_ERROR_CONNECTION_FAILED)
         {
-            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，无法连接服务器").arg(collector->getDataModel().m_id));
+            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，无法连接服务器").arg(taskCode));
+            m_isCollecting = false;
+            updateButtonStatus();
+        }
+        else
+        {
+            addCollectLog(QString::fromWCharArray(L"编号%1采集失败，未知原因").arg(taskCode));
             m_isCollecting = false;
             updateButtonStatus();
         }
@@ -173,9 +178,17 @@ void MainWindow::onCollectNextTask()
     collector->run();
 }
 
-void MainWindow::finishCurrentTask(const DataModel& dataModel)
+void MainWindow::finishCurrentTask(int errorCode, const QVector<DataModel>& dataModel)
 {
-    CollectStatusManager::getInstance()->finishCurrentTask(dataModel);
+    if (errorCode == COLLECT_ERROR_INVALID_CODE)
+    {
+        CollectStatusManager::getInstance()->switchToNextDay();
+    }
+    else
+    {
+        CollectStatusManager::getInstance()->finishCurrentTask(dataModel);
+    }
+
     if (CollectStatusManager::getInstance()->isFinish())
     {
         // 结束采集计划
@@ -188,7 +201,7 @@ void MainWindow::finishCurrentTask(const DataModel& dataModel)
     }
 }
 
-QString MainWindow::saveCollectResult()
+bool MainWindow::saveCollectResult()
 {
     // 拷贝默认采集结果输出表格到保存目录
     QString excelFileName = QString::fromWCharArray(L"采集结果.xlsx");
@@ -200,7 +213,7 @@ QString MainWindow::saveCollectResult()
     if (!::CopyFile(srcExcelFilePath.toStdWString().c_str(), destExcelFilePath.toStdWString().c_str(), TRUE))
     {
         qCritical("failed to copy the result excel file");
-        return "";
+        return false;
     }
 
     // 从第2行开始写
@@ -208,30 +221,34 @@ QString MainWindow::saveCollectResult()
     if (!xlsx.load())
     {
         qCritical("failed to load the result excel file");
-        return "";
+        return false;
     }
 
     auto& datas = CollectStatusManager::getInstance()->getCollectDatas();
-    int row = 2;
+    int row = 2;    
     for (const auto& data : datas)
     {
-        xlsx.write(row, 1, data.m_id);
-        xlsx.write(row, 2, data.m_name);
-        xlsx.write(row, 3, data.m_type);
-        xlsx.write(row, 4, data.m_dataLevel);
-        xlsx.write(row, 5, data.m_beginDate);
-        xlsx.write(row, 6, data.m_endDate);
-        xlsx.write(row, 7, data.m_dataSource);
-        xlsx.write(row, 8, data.m_factSize);
-        xlsx.write(row, 9, data.m_remark);
+        int column = 1;
+        xlsx.write(row, column, data.m_id);
+        xlsx.write(row, ++column, data.m_name);
+        xlsx.write(row, ++column, data.m_type);
+        xlsx.write(row, ++column, data.m_dataLevel);
+        xlsx.write(row, ++column, data.m_buildLicenseNum);
+        xlsx.write(row, ++column, data.m_factCost);
+        xlsx.write(row, ++column, data.m_beginDate);
+        xlsx.write(row, ++column, data.m_endDate);
+        xlsx.write(row, ++column, data.m_dataSource);
+        xlsx.write(row, ++column, data.m_factSize);
+        xlsx.write(row, ++column, data.m_remark);
         row++;
     }
 
     if (!xlsx.save())
     {
         qCritical("failed to save the result excel file");
-        return "";
+        return false;
     }
 
-    return destExcelFilePath;
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
+    return true;
 }

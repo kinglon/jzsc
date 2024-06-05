@@ -33,6 +33,8 @@ void CollectStatusManager::save()
         dataJson["name"] = data.m_name;
         dataJson["type"] = data.m_type;
         dataJson["data_level"] = data.m_dataLevel;
+        dataJson["build_license_num"] = data.m_buildLicenseNum;
+        dataJson["fact_cost"] = data.m_factCost;
         dataJson["fact_size"] = data.m_factSize;
         dataJson["begin_date"] = data.m_beginDate;
         dataJson["end_date"] = data.m_endDate;
@@ -74,27 +76,25 @@ QString CollectStatusManager::getNextTask()
     return code;
 }
 
-void CollectStatusManager::finishCurrentTask(const DataModel& dataModel)
+void CollectStatusManager::finishCurrentTask(const QVector<DataModel>& dataModels)
 {
-    if (!dataModel.m_name.isEmpty())
+    for (const auto& dataModel : dataModels )
     {
         m_collectDatas.push_back(dataModel);
     }
 
-    // 计算下一个任务，如果有数据，索引加1，如果没有数据，日期加1
-    if (!dataModel.m_name.isEmpty())
+    m_nextIndex++;
+    save();
+}
+
+void CollectStatusManager::switchToNextDay()
+{
+    m_nextIndex = 1;
+    int year = m_currentDate.year();
+    m_currentDate = m_currentDate.addDays(1);
+    if (m_currentDate.year() != year) // 新的一年就认为结束
     {
-        m_nextIndex++;
-    }
-    else
-    {
-        m_nextIndex = 1;
-        int year = m_currentDate.year();
-        m_currentDate = m_currentDate.addDays(1);
-        if (m_currentDate.year() != year) // 新的一年就认为结束
-        {
-            m_finish = true;
-        }
+        m_finish = true;
     }
     save();
 }
@@ -143,6 +143,8 @@ void CollectStatusManager::load()
         data.m_name = dataJson["name"].toString();
         data.m_type = dataJson["type"].toString();
         data.m_dataLevel = dataJson["data_level"].toString();
+        data.m_buildLicenseNum = dataJson["build_license_num"].toString();
+        data.m_factCost = dataJson["fact_cost"].toString();
         data.m_factSize = dataJson["fact_size"].toString();
         data.m_beginDate = dataJson["begin_date"].toString();
         data.m_endDate = dataJson["end_date"].toString();

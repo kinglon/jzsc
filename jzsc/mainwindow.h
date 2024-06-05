@@ -32,9 +32,9 @@ private:
 
     void stopCollect();
 
-    void finishCurrentTask(const DataModel& dataModel);
+    void finishCurrentTask(int errorCode, const QVector<DataModel>& dataModel);
 
-    QString saveCollectResult();
+    bool saveCollectResult();
 
 private slots:
     void onCollectNextTask();

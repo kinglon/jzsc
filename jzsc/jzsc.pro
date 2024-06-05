@@ -1,4 +1,4 @@
-QT       += core gui webenginewidgets
+QT       += core gui webenginewidgets network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -52,5 +52,9 @@ QXLSX_PARENTPATH=./QXlsx         # current QXlsx path is . (. means curret direc
 QXLSX_HEADERPATH=./QXlsx/header/  # current QXlsx header path is ./header/
 QXLSX_SOURCEPATH=./QXlsx/source/  # current QXlsx source path is ./source/
 include(./QXlsx/QXlsx.pri)
-
 INCLUDEPATH += QXLSX_HEADERPATH
+
+# add QAes module
+INCLUDEPATH += ./QAes/aesni/ ./QAes/
+HEADERS += ./QAes/qaesencryption.h
+SOURCES += ./QAes/qaesencryption.cpp

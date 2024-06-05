@@ -28,7 +28,10 @@ public:
 
     QVector<DataModel>& getCollectDatas() { return m_collectDatas; }
 
-    void finishCurrentTask(const DataModel& dataModel);
+    void finishCurrentTask(const QVector<DataModel>& dataModel);
+
+    // 切到下一天继续采集
+    void switchToNextDay();
 
     bool isFinish() { return m_finish;}
 

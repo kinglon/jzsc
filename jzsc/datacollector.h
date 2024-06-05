@@ -2,6 +2,9 @@
 #define DATACOLLECTOR_H
 
 #include <QObject>
+#include <QVector>
+#include <QNetworkReply>
+#include <QTimer>
 #include "datamodel.h"
 
 // 采集失败原因
@@ -18,16 +21,48 @@ public:
     explicit DataCollector(QObject *parent = nullptr);
 
 public:
-    DataModel& getDataModel() { return m_dataModel; }
+    void SetCode(QString code) { m_code = code; }
 
-    void run();
+    bool run();
+
+    QVector<DataModel>& getDataModel() { return m_dataModel; }
+
+    static QByteArray intArrayToByteArray(int datas[], int size);
+
+private:
+    void httpGetData();
+
+    QByteArray decode(const QByteArray& data);
+
+    void parseDatas(const QJsonArray& datas);
+
+    void killTimer();
+
+private slots:
+    void onHttpFinished(QNetworkReply *reply);
+
+    void runJsCodeFinished(const QVariant& result);
 
 signals:
     // 运行结束
     void runFinish(int errorCode);
 
 private:
-    DataModel m_dataModel;
+    QString m_code;
+
+    QVector<DataModel> m_dataModel;
+
+    int m_retryCount = 0;
+
+    QTimer* m_timer = nullptr;
+
+    QString m_accessToken;
+
+    QVector<int> m_reverseMapData;
+
+    QByteArray m_key;
+
+    QByteArray m_iv;
 };
 
 #endif // DATACOLLECTOR_H
