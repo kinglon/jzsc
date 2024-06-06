@@ -18,20 +18,17 @@ public:
     void save();
 
     // 查询是否正在采集
-    bool isCollecting() { return !m_codePrefix.isEmpty(); }
+    bool isCollecting() { return m_endIndex > 0; }
 
     // 启动新任务采集
-    void startNewTasks(QString codePrefix, QDate beginDate);
+    void startNewTasks(int beginIndex, int endIndex);
 
-    // 获取下一个采集任务编号
-    QString getNextTask();
+    // 获取下一个采集任务ID
+    QString getNextTask() { return QString::number(m_nextIndex); }
 
     QVector<DataModel>& getCollectDatas() { return m_collectDatas; }
 
-    void finishCurrentTask(const QVector<DataModel>& dataModel);
-
-    // 切到下一天继续采集
-    void switchToNextDay();
+    void finishCurrentTask(const QVector<DataModel>& dataModel);   
 
     bool isFinish() { return m_finish;}
 
@@ -41,14 +38,11 @@ private:
     void load();
 
 private:
-    // 编号前6位
-    QString m_codePrefix;
-
-    // 日期
-    QDate m_currentDate;
-
     // 下一个采集索引
-    int m_nextIndex = 1;
+    int m_nextIndex = 0;
+
+    // 结束索引
+    int m_endIndex = 0;
 
     // 采集的结果
     QVector<DataModel> m_collectDatas;

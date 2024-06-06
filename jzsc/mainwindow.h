@@ -32,7 +32,7 @@ private:
 
     void stopCollect();
 
-    void finishCurrentTask(int errorCode, const QVector<DataModel>& dataModel);
+    void finishCurrentTask(const QVector<DataModel>& dataModel);
 
     bool saveCollectResult();
 

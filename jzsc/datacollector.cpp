@@ -12,6 +12,8 @@
 #include "browserwindow.h"
 #include "qcompressor.h"
 
+#define MAX_RETRY_COUNT 4
+
 QNetworkAccessManager *DataCollector::m_networkAccessManager = nullptr;
 
 DataCollector::DataCollector(QObject *parent)
@@ -32,6 +34,7 @@ bool DataCollector::run()
     }
 
     // 获取accessToken
+    m_currentStep = COLLECT_STEP_GET_TOKEN;
     connect(BrowserWindow::getInstance(), &BrowserWindow::runJsCodeFinished, this, &DataCollector::runJsCodeFinished);
     QString jsCode = "var jsResult = {};jsResult['accessToken'] = '';if (localStorage.accessToken){jsResult['accessToken'] = localStorage.accessToken;} jsResult;";
     BrowserWindow::getInstance()->runJsCode(jsCode);
@@ -68,7 +71,7 @@ QByteArray DataCollector::intArrayToByteArray(int datas[], int size)
     return byteArray;
 }
 
-void DataCollector::httpGetData()
+void DataCollector::httpGetData1()
 {
     if (m_networkAccessManager == nullptr)
     {
@@ -76,10 +79,30 @@ void DataCollector::httpGetData()
     }
 
     QNetworkRequest request;
-    QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectFinishManage?jsxmCode=%1&pg=0&pgsz=15").arg(m_code));
+    QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectDetail?id=%1").arg(m_code));
     request.setUrl(url);
+    addCommonHeader(request);
+    m_networkAccessManager->get(request);
+}
 
-    // 设置头部
+void DataCollector::httpGetData2()
+{
+    if (m_networkAccessManager == nullptr)
+    {
+        return;
+    }
+
+    qInfo("the project num is %s", m_projectNum.toStdString().c_str());
+
+    QNetworkRequest request;
+    QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectFinishManage?jsxmCode=%1&pg=0&pgsz=15").arg(m_projectNum));
+    request.setUrl(url);
+    addCommonHeader(request);
+    m_networkAccessManager->get(request);
+}
+
+void DataCollector::addCommonHeader(QNetworkRequest& request)
+{
     request.setRawHeader("Accept", "application/json, text/plain, */*");
     request.setRawHeader("Accept-Encoding", "gzip, deflate, br, zstd");
     request.setRawHeader("Origin", "https://jzsc.mohurd.gov.cn/");
@@ -88,7 +111,6 @@ void DataCollector::httpGetData()
     request.setRawHeader("Accesstoken", m_accessToken.toUtf8());
     request.setRawHeader("Timeout", "30000");
     request.setRawHeader("V", "231012");
-    m_networkAccessManager->get(request);
 }
 
 QByteArray DataCollector::decode(const QByteArray& data)
@@ -109,11 +131,112 @@ void DataCollector::killTimer()
     }
 }
 
-void DataCollector::processHttpReply(QNetworkReply *reply)
+void DataCollector::processHttpReply1(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError)
     {
-        qCritical("failed to send the http request, error: %d", reply->error());
+        qCritical("failed to send the http request for data1, error: %d", reply->error());
+        if (m_retryCount >= MAX_RETRY_COUNT)
+        {
+            emit runFinish(COLLECT_ERROR_CONNECTION_FAILED);
+        }
+        else
+        {
+            QTimer::singleShot(1000, [this]() {
+                m_retryCount++;
+                httpGetData1();
+            });
+        }
+    }
+    else
+    {
+        QByteArray rawData = reply->readAll();
+        if (reply->rawHeader("Content-Encoding").toStdString() == "gzip")
+        {
+            QByteArray decompressData;
+            if (!QCompressor::gzipDecompress(rawData, decompressData))
+            {
+                qCritical("failed to decompress the gzip response data");
+                emit runFinish(COLLECT_ERROR);
+                return;
+            }
+            rawData = decompressData;
+        }
+
+        QByteArray decodeData = decode(rawData);
+        if (decodeData.size() == 0)
+        {
+            emit runFinish(COLLECT_ERROR);
+            return;
+        }
+
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(decodeData);
+        if (jsonDocument.isNull() || jsonDocument.isEmpty())
+        {
+            qCritical("failed to parse the json data");
+            emit runFinish(COLLECT_ERROR);
+            return;
+        }
+
+        QJsonObject root = jsonDocument.object();
+        if (!root.contains("code"))
+        {
+            qCritical("the response data not have code memeber");
+            emit runFinish(COLLECT_ERROR);
+            return;
+        }
+
+        int errorCode = root["code"].toInt();
+        if (errorCode != 200)
+        {
+            qCritical("the response data have error: %d", errorCode);
+            emit runFinish(COLLECT_ERROR_NOT_LOGIN);
+            return;
+        }
+        else
+        {
+            if (root.contains("data"))
+            {
+                QJsonObject data = root["data"].toObject();
+                if (!data.contains("PRJNUM"))
+                {
+                    qInfo("id=%s not exist", m_code.toStdString().c_str());
+                    emit runFinish(COLLECT_SUCCESS);
+                    return;
+                }
+                qulonglong projectNum = (qulonglong)(data["PRJNUM"].toDouble());
+                m_projectNum = QString::number(projectNum);
+
+                if (data.contains("PRJTYPENUM"))
+                {
+                    m_projectType = data["PRJTYPENUM"].toString();
+                }
+
+                if (data.contains("PRJNAME"))
+                {
+                    m_projectName = data["PRJNAME"].toString();
+                }
+
+                m_currentStep = COLLECT_STEP_GET_PROJECT_DATA_2;
+                m_retryCount = 0;
+                httpGetData2();
+                return;
+            }
+            else
+            {
+                qCritical("the response data not have data memeber");
+                emit runFinish(COLLECT_ERROR);
+                return;
+            }
+        }
+    }
+}
+
+void DataCollector::processHttpReply2(QNetworkReply *reply)
+{
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        qCritical("failed to send the http request for data2, error: %d", reply->error());
         if (m_retryCount >= 4)
         {
             emit runFinish(COLLECT_ERROR_CONNECTION_FAILED);
@@ -122,7 +245,7 @@ void DataCollector::processHttpReply(QNetworkReply *reply)
         {
             QTimer::singleShot(1000, [this]() {
                 m_retryCount++;
-                httpGetData();
+                httpGetData2();
             });
         }
     }
@@ -178,12 +301,17 @@ void DataCollector::processHttpReply(QNetworkReply *reply)
                 QJsonArray datas = root["data"].toObject()["list"].toArray();
                 if (datas.size() == 0)
                 {
-                    emit runFinish(COLLECT_ERROR_INVALID_CODE);
+                    DataModel dataModel;
+                    dataModel.m_id = m_projectNum;
+                    dataModel.m_name = m_projectName;
+                    dataModel.m_type = m_projectType;
+                    m_dataModel.append(dataModel);
+                    emit runFinish(COLLECT_SUCCESS);
                     return;
                 }
                 else
                 {
-                    parseDatas(datas);
+                    parseData2(datas);
                     emit runFinish(COLLECT_SUCCESS);
                     return;
                 }
@@ -200,7 +328,14 @@ void DataCollector::processHttpReply(QNetworkReply *reply)
 
 void DataCollector::onHttpFinished(QNetworkReply *reply)
 {
-    processHttpReply(reply);
+    if (m_currentStep == COLLECT_STEP_GET_PROJECT_DATA_1)
+    {
+        processHttpReply1(reply);
+    }
+    else if (m_currentStep == COLLECT_STEP_GET_PROJECT_DATA_2)
+    {
+        processHttpReply2(reply);
+    }
     reply->deleteLater();
 }
 
@@ -217,40 +352,21 @@ void DataCollector::runJsCodeFinished(const QVariant& result)
         killTimer();
         disconnect(BrowserWindow::getInstance(), &BrowserWindow::runJsCodeFinished, this, &DataCollector::runJsCodeFinished);
         m_accessToken = storageItems["accessToken"].toString();
-        httpGetData();
+        m_currentStep = COLLECT_STEP_GET_PROJECT_DATA_1;
+        m_retryCount = 0;
+        httpGetData1();
     }
 }
 
-void DataCollector::parseDatas(const QJsonArray& datas)
+void DataCollector::parseData2(const QJsonArray& datas)
 {
-    m_dataModel.clear();
     for (const auto& dataJson : datas)
     {
         QJsonObject itemJson = dataJson.toObject();
         DataModel dataModel;
-        dataModel.m_id = m_code;
-
-        if (itemJson.contains("FINPRJNAME"))
-        {
-            dataModel.m_name = itemJson["FINPRJNAME"].toString();
-        }
-
-        if (itemJson.contains("RN"))
-        {
-            int rn = itemJson["RN"].toInt();
-            if (rn == 0)
-            {
-                dataModel.m_type = QString::fromWCharArray(L"房屋建筑工程");
-            }
-            else if (rn == 1)
-            {
-                dataModel.m_type = QString::fromWCharArray(L"市政工程");
-            }
-            else
-            {
-                dataModel.m_type = QString::fromWCharArray(L"其它");
-            }
-        }
+        dataModel.m_id = m_projectNum;
+        dataModel.m_name = m_projectName;
+        dataModel.m_type = m_projectType;
 
         if (itemJson.contains("BUILDERLICENCENUM"))
         {
@@ -292,14 +408,29 @@ void DataCollector::parseDatas(const QJsonArray& datas)
 
         if (itemJson.contains("DATASOURCE"))
         {
-            int dataSource = itemJson["DATASOURCE"].toInt();
-            if (dataSource == 2)
+            if (itemJson["DATASOURCE"].isNull())
             {
-                dataModel.m_dataSource = QString::fromWCharArray(L"信息登记");
+                dataModel.m_dataSource = "--";
             }
             else
             {
-                dataModel.m_dataSource = QString::number(dataSource);
+                int dataSource = itemJson["DATASOURCE"].toInt();
+                if (dataSource == 1)
+                {
+                    dataModel.m_dataSource = QString::fromWCharArray(L"业务办理");
+                }
+                else if (dataSource == 2)
+                {
+                    dataModel.m_dataSource = QString::fromWCharArray(L"信息登记");
+                }
+                else if (dataSource == 3)
+                {
+                    dataModel.m_dataSource = QString::fromWCharArray(L"历史业绩补录");
+                }
+                else
+                {
+                    dataModel.m_dataSource = QString::number(dataSource);
+                }
             }
         }
 

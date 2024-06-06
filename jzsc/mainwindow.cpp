@@ -84,15 +84,15 @@ void MainWindow::addCollectLog(const QString& log)
 
 void MainWindow::startCollect()
 {
-    QString codePrefix = ui->codePrefixEdit->text();
-    QDate beginDate = ui->beginDateEdit->date();
-    if (codePrefix.length() != 6)
+    int beginId = ui->beginIdEdit->text().toInt();
+    int endId = ui->endIdEdit->text().toInt();
+    if (beginId >= endId)
     {
-        showTip("编号前6位输入不正确");
+        showTip(QString::fromWCharArray(L"结束ID必须大于开始ID"));
         return;
     }
 
-    CollectStatusManager::getInstance()->startNewTasks(codePrefix, beginDate);
+    CollectStatusManager::getInstance()->startNewTasks(beginId, endId);
     updateButtonStatus();
     continueCollect();
 }
@@ -151,13 +151,8 @@ void MainWindow::onCollectNextTask()
         if (errorCode == COLLECT_SUCCESS)
         {
             addCollectLog(QString::fromWCharArray(L"编号%1完成采集").arg(taskCode));
-            finishCurrentTask(errorCode, collector->getDataModel());
-        }
-        else if (errorCode == COLLECT_ERROR_INVALID_CODE)
-        {
-            addCollectLog(QString::fromWCharArray(L"编号%1不存在，采集下一天数据").arg(taskCode));
-            finishCurrentTask(errorCode,  QVector<DataModel>());
-        }
+            finishCurrentTask(collector->getDataModel());
+        }        
         else if (errorCode == COLLECT_ERROR_NOT_LOGIN)
         {
             addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请人工验证").arg(taskCode));
@@ -181,17 +176,9 @@ void MainWindow::onCollectNextTask()
     collector->run();
 }
 
-void MainWindow::finishCurrentTask(int errorCode, const QVector<DataModel>& dataModel)
+void MainWindow::finishCurrentTask(const QVector<DataModel>& dataModel)
 {
-    if (errorCode == COLLECT_ERROR_INVALID_CODE)
-    {
-        CollectStatusManager::getInstance()->switchToNextDay();
-    }
-    else
-    {
-        CollectStatusManager::getInstance()->finishCurrentTask(dataModel);
-    }
-
+    CollectStatusManager::getInstance()->finishCurrentTask(dataModel);
     if (CollectStatusManager::getInstance()->isFinish())
     {
         // 结束采集计划

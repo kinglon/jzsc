@@ -20,9 +20,8 @@ CollectStatusManager* CollectStatusManager::getInstance()
 void CollectStatusManager::save()
 {
     QJsonObject root;
-    root["code_prefix"] = m_codePrefix;
-    root["current_date"] = m_currentDate.toString("yyyy-MM-dd");
     root["next_index"] = m_nextIndex;
+    root["end_index"] = m_endIndex;
     root["finish"] = m_finish;
 
     QJsonArray datasJson;
@@ -57,23 +56,12 @@ void CollectStatusManager::save()
     file.close();
 }
 
-void CollectStatusManager::startNewTasks(QString codePrefix, QDate beginDate)
+void CollectStatusManager::startNewTasks(int beginIndex, int endIndex)
 {
     reset();
-    m_codePrefix = codePrefix;
-    m_currentDate = beginDate;
+    m_nextIndex = beginIndex;
+    m_endIndex = endIndex;
     save();
-}
-
-QString CollectStatusManager::getNextTask()
-{
-    if (m_codePrefix.isEmpty())
-    {
-        return "";
-    }
-
-    QString code = m_codePrefix + m_currentDate.toString("yyMMdd") + QString("%1").arg(m_nextIndex, 4, 10, QLatin1Char('0'));
-    return code;
 }
 
 void CollectStatusManager::finishCurrentTask(const QVector<DataModel>& dataModels)
@@ -84,15 +72,7 @@ void CollectStatusManager::finishCurrentTask(const QVector<DataModel>& dataModel
     }
 
     m_nextIndex++;
-    save();
-}
-
-void CollectStatusManager::switchToNextDay()
-{
-    m_nextIndex = 1;
-    int year = m_currentDate.year();
-    m_currentDate = m_currentDate.addDays(1);
-    if (m_currentDate.year() != year) // 新的一年就认为结束
+    if (m_nextIndex > m_endIndex)
     {
         m_finish = true;
     }
@@ -100,10 +80,9 @@ void CollectStatusManager::switchToNextDay()
 }
 
 void CollectStatusManager::reset()
-{
-    m_codePrefix = "";
-    m_currentDate = QDate();
-    m_nextIndex = 1;
+{    
+    m_nextIndex = 0;
+    m_endIndex = 0;
     m_collectDatas.clear();
     m_finish = false;
     save();
@@ -128,9 +107,8 @@ void CollectStatusManager::load()
 
     QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonData);
     QJsonObject root = jsonDocument.object();
-    m_codePrefix = root["code_prefix"].toString();
-    m_currentDate = QDate::fromString(root["current_date"].toString(), "yyyy-MM-dd");
     m_nextIndex = root["next_index"].toInt();
+    m_endIndex = root["end_index"].toInt();
     m_finish = root["finish"].toBool();
 
     m_collectDatas.clear();

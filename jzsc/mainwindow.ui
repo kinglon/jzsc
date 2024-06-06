@@ -32,14 +32,14 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>编号前6位</string>
+          <string>开始ID</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="codePrefixEdit">
+        <widget class="QLineEdit" name="beginIdEdit">
          <property name="text">
-          <string>520402</string>
+          <string>1</string>
          </property>
         </widget>
        </item>
@@ -49,21 +49,14 @@
        <item>
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>开始日期</string>
+          <string>结束ID</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QDateEdit" name="beginDateEdit">
-         <property name="dateTime">
-          <datetime>
-           <hour>0</hour>
-           <minute>0</minute>
-           <second>0</second>
-           <year>2023</year>
-           <month>1</month>
-           <day>1</day>
-          </datetime>
+        <widget class="QLineEdit" name="endIdEdit">
+         <property name="text">
+          <string>100</string>
          </property>
         </widget>
        </item>
