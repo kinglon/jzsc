@@ -51,9 +51,9 @@ bool DataCollector::run()
     if (m_networkAccessManager == nullptr)
     {
         m_networkAccessManager = new QNetworkAccessManager();
-        m_networkAccessManager->setProxy(QNetworkProxy());
-        m_networkAccessManager->setTransferTimeout(3000);
+        m_networkAccessManager->setProxy(QNetworkProxy());        
     }
+    m_networkAccessManager->setTransferTimeout(m_networkTimeout*1000);
     connect(m_networkAccessManager, &QNetworkAccessManager::finished, this, &DataCollector::onHttpFinished);
 
     return true;
@@ -201,7 +201,7 @@ void DataCollector::processHttpReply1(QNetworkReply *reply)
                 if (!data.contains("PRJNUM"))
                 {
                     qInfo("id=%s not exist", m_code.toStdString().c_str());
-                    emit runFinish(COLLECT_SUCCESS);
+                    emit runFinish(COLLECT_ERROR_NOT_EXIST);
                     return;
                 }
                 qulonglong projectNum = (qulonglong)(data["PRJNUM"].toDouble());
@@ -302,6 +302,7 @@ void DataCollector::processHttpReply2(QNetworkReply *reply)
                 if (datas.size() == 0)
                 {
                     DataModel dataModel;
+                    dataModel.m_queryId = m_code;
                     dataModel.m_id = m_projectNum;
                     dataModel.m_name = m_projectName;
                     dataModel.m_type = m_projectType;
@@ -364,6 +365,7 @@ void DataCollector::parseData2(const QJsonArray& datas)
     {
         QJsonObject itemJson = dataJson.toObject();
         DataModel dataModel;
+        dataModel.m_queryId = m_code;
         dataModel.m_id = m_projectNum;
         dataModel.m_name = m_projectName;
         dataModel.m_type = m_projectType;

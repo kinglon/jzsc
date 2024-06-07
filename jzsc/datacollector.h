@@ -13,6 +13,7 @@
 #define COLLECT_ERROR                   1
 #define COLLECT_ERROR_NOT_LOGIN         2  // 未登录
 #define COLLECT_ERROR_CONNECTION_FAILED 3  // 连接失败
+#define COLLECT_ERROR_NOT_EXIST         4  // 查询ID不存在
 
 // 采集步骤
 #define COLLECT_STEP_INIT                  0
@@ -28,6 +29,9 @@ public:
 
 public:
     void setCode(QString code) { m_code = code; }
+
+    // 设置网络超时，单位秒
+    void setNetworkTimeout(int timeout) { m_networkTimeout = timeout;}
 
     bool run();
 
@@ -88,6 +92,9 @@ private:
     QByteArray m_iv;
 
     static QNetworkAccessManager *m_networkAccessManager;
+
+    // 网络请求超时时长，单位秒
+    int m_networkTimeout = 3;
 };
 
 #endif // DATACOLLECTOR_H

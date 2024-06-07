@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>571</width>
+    <width>689</width>
     <height>492</height>
    </rect>
   </property>
@@ -19,7 +19,7 @@
      <rect>
       <x>20</x>
       <y>16</y>
-      <width>531</width>
+      <width>651</width>
       <height>461</height>
      </rect>
     </property>
@@ -69,6 +69,20 @@
        </item>
        <item>
         <widget class="QLineEdit" name="intervalEdit">
+         <property name="text">
+          <string>3</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>超时(秒)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="timeoutEdit">
          <property name="text">
           <string>3</string>
          </property>

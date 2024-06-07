@@ -147,12 +147,22 @@ void MainWindow::onCollectNextTask()
     addCollectLog(QString::fromWCharArray(L"编号%1开始采集").arg(taskCode));
     DataCollector* collector = new DataCollector(this);
     collector->setCode(taskCode);
+    int timeout = ui->timeoutEdit->text().toInt();
+    if (timeout > 0)
+    {
+        collector->setNetworkTimeout(timeout);
+    }
     connect(collector, &DataCollector::runFinish, [collector, taskCode, this](int errorCode) {
         if (errorCode == COLLECT_SUCCESS)
         {
             addCollectLog(QString::fromWCharArray(L"编号%1完成采集").arg(taskCode));
             finishCurrentTask(collector->getDataModel());
-        }        
+        }
+        else if (errorCode == COLLECT_ERROR_NOT_EXIST)
+        {
+            addCollectLog(QString::fromWCharArray(L"编号%1完成采集，不存在").arg(taskCode));
+            finishCurrentTask(collector->getDataModel());
+        }
         else if (errorCode == COLLECT_ERROR_NOT_LOGIN)
         {
             addCollectLog(QString::fromWCharArray(L"编号%1采集失败，请人工验证").arg(taskCode));
@@ -225,7 +235,8 @@ bool MainWindow::saveCollectResult()
     for (const auto& data : datas)
     {
         int column = 1;
-        xlsx.write(row, column, data.m_id);
+        xlsx.write(row, column, data.m_queryId);
+        xlsx.write(row, ++column, data.m_id);
         xlsx.write(row, ++column, data.m_name);
         xlsx.write(row, ++column, data.m_type);
         xlsx.write(row, ++column, data.m_dataLevel);

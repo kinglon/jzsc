@@ -6,6 +6,9 @@
 class DataModel
 {
 public:
+    // 查询ID
+    QString m_queryId;
+
     // 项目编号
     QString m_id;
 

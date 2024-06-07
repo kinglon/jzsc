@@ -28,6 +28,7 @@ void CollectStatusManager::save()
     for (const auto& data : m_collectDatas)
     {
         QJsonObject dataJson;
+        dataJson["query_id"] = data.m_queryId;
         dataJson["id"] = data.m_id;
         dataJson["name"] = data.m_name;
         dataJson["type"] = data.m_type;
@@ -117,6 +118,7 @@ void CollectStatusManager::load()
     {
         auto dataJson = datasJson.at(i);
         DataModel data;
+        data.m_queryId = dataJson["query_id"].toString();
         data.m_id = dataJson["id"].toString();
         data.m_name = dataJson["name"].toString();
         data.m_type = dataJson["type"].toString();
