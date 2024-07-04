@@ -52,7 +52,7 @@ private:
 
     QByteArray decode(const QByteArray& data);
 
-    void parseData2(const QJsonArray& datas);
+    void parseData2(const QJsonObject& dataJson);
 
     void killTimer();
 
@@ -67,15 +67,6 @@ signals:
 
 private:
     QString m_code;
-
-    // 项目类别
-    QString m_projectType;
-
-    // 项目编号
-    QString m_projectNum;
-
-    // 项目名称
-    QString m_projectName;
 
     QVector<DataModel> m_dataModel;
 

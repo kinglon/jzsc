@@ -92,10 +92,8 @@ void DataCollector::httpGetData2()
         return;
     }
 
-    qInfo("the project num is %s", m_projectNum.toStdString().c_str());
-
     QNetworkRequest request;
-    QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectFinishManage?jsxmCode=%1&pg=0&pgsz=15").arg(m_projectNum));
+    QUrl url(QString("https://jzsc.mohurd.gov.cn/APi/webApi/dataservice/query/project/projectFinishManageDetail?id=%1").arg(m_code));
     request.setUrl(url);
     addCommonHeader(request);
     m_networkAccessManager->get(request);
@@ -197,25 +195,25 @@ void DataCollector::processHttpReply1(QNetworkReply *reply)
         {
             if (root.contains("data"))
             {
-                QJsonObject data = root["data"].toObject();
-                if (!data.contains("PRJNUM"))
-                {
-                    qInfo("id=%s not exist", m_code.toStdString().c_str());
-                    emit runFinish(COLLECT_ERROR_NOT_EXIST);
-                    return;
-                }
-                qulonglong projectNum = (qulonglong)(data["PRJNUM"].toDouble());
-                m_projectNum = QString::number(projectNum);
+//                QJsonObject data = root["data"].toObject();
+//                if (!data.contains("PRJNUM"))
+//                {
+//                    qInfo("id=%s not exist", m_code.toStdString().c_str());
+//                    emit runFinish(COLLECT_ERROR_NOT_EXIST);
+//                    return;
+//                }
+//                qulonglong projectNum = (qulonglong)(data["PRJNUM"].toDouble());
+//                m_projectNum = QString::number(projectNum);
 
-                if (data.contains("PRJTYPENUM"))
-                {
-                    m_projectType = data["PRJTYPENUM"].toString();
-                }
+//                if (data.contains("PRJTYPENUM"))
+//                {
+//                    m_projectType = data["PRJTYPENUM"].toString();
+//                }
 
-                if (data.contains("PRJNAME"))
-                {
-                    m_projectName = data["PRJNAME"].toString();
-                }
+//                if (data.contains("PRJNAME"))
+//                {
+//                    m_projectName = data["PRJNAME"].toString();
+//                }
 
                 m_currentStep = COLLECT_STEP_GET_PROJECT_DATA_2;
                 m_retryCount = 0;
@@ -296,26 +294,11 @@ void DataCollector::processHttpReply2(QNetworkReply *reply)
         }
         else
         {
-            if (root.contains("data") && root["data"].toObject().contains("list"))
+            if (root.contains("data"))
             {
-                QJsonArray datas = root["data"].toObject()["list"].toArray();
-                if (datas.size() == 0)
-                {
-                    DataModel dataModel;
-                    dataModel.m_queryId = m_code;
-                    dataModel.m_id = m_projectNum;
-                    dataModel.m_name = m_projectName;
-                    dataModel.m_type = m_projectType;
-                    m_dataModel.append(dataModel);
-                    emit runFinish(COLLECT_SUCCESS);
-                    return;
-                }
-                else
-                {
-                    parseData2(datas);
-                    emit runFinish(COLLECT_SUCCESS);
-                    return;
-                }
+                parseData2(root["data"].toObject());
+                emit runFinish(COLLECT_SUCCESS);
+                return;
             }
             else
             {
@@ -359,88 +342,92 @@ void DataCollector::runJsCodeFinished(const QVariant& result)
     }
 }
 
-void DataCollector::parseData2(const QJsonArray& datas)
+void DataCollector::parseData2(const QJsonObject& itemJson)
 {
-    for (const auto& dataJson : datas)
+    DataModel dataModel;
+    dataModel.m_queryId = m_code;
+
+    if (itemJson.contains("PRJNUM"))
     {
-        QJsonObject itemJson = dataJson.toObject();
-        DataModel dataModel;
-        dataModel.m_queryId = m_code;
-        dataModel.m_id = m_projectNum;
-        dataModel.m_name = m_projectName;
-        dataModel.m_type = m_projectType;
+        qulonglong projectNum = (qulonglong)(itemJson["PRJNUM"].toDouble());
+        dataModel.m_id = QString::number(projectNum);
+    }
 
-        if (itemJson.contains("BUILDERLICENCENUM"))
+    if (itemJson.contains("FINPRJNAME"))
+    {
+        dataModel.m_name = itemJson["FINPRJNAME"].toString();
+    }
+
+    if (itemJson.contains("BUILDERLICENCENUM"))
+    {
+        dataModel.m_buildLicenseNum = itemJson["BUILDERLICENCENUM"].toString();
+    }
+
+    if (itemJson.contains("FACTCOST"))
+    {
+        dataModel.m_factCost = QString::number(itemJson["FACTCOST"].toDouble(), 'f', 2);
+    }
+
+    if (itemJson.contains("BDATE"))
+    {
+        int unixTimeSec = (int)(itemJson["BDATE"].toDouble()/1000);
+        QDateTime dt = QDateTime::fromSecsSinceEpoch(unixTimeSec);
+        QDate date = dt.date();
+        QString dateString = date.toString("yyyy-MM-dd");
+        dataModel.m_beginDate = dateString;
+    }
+
+    if (itemJson.contains("EDATE"))
+    {
+        int unixTimeSec = (int)(itemJson["EDATE"].toDouble()/1000);
+        QDateTime dt = QDateTime::fromSecsSinceEpoch(unixTimeSec);
+        QDate date = dt.date();
+        QString dateString = date.toString("yyyy-MM-dd");
+        dataModel.m_endDate = dateString;
+    }
+
+    if (itemJson.contains("MARK"))
+    {
+        dataModel.m_remark = itemJson["MARK"].toString();
+    }
+
+    if (itemJson.contains("FACTSIZE"))
+    {
+        dataModel.m_factSize = itemJson["FACTSIZE"].toString();
+    }
+
+    if (itemJson.contains("DATASOURCE"))
+    {
+        if (itemJson["DATASOURCE"].isNull())
         {
-            dataModel.m_buildLicenseNum = itemJson["BUILDERLICENCENUM"].toString();
+            dataModel.m_dataSource = "--";
         }
-
-        if (itemJson.contains("FACTCOST"))
+        else
         {
-            dataModel.m_factCost = QString::number(itemJson["FACTCOST"].toDouble(), 'f', 2);
-        }
-
-        if (itemJson.contains("BDATE"))
-        {
-            int unixTimeSec = (int)(itemJson["BDATE"].toDouble()/1000);
-            QDateTime dt = QDateTime::fromSecsSinceEpoch(unixTimeSec);
-            QDate date = dt.date();
-            QString dateString = date.toString("yyyy-MM-dd");
-            dataModel.m_beginDate = dateString;
-        }
-
-        if (itemJson.contains("EDATE"))
-        {
-            int unixTimeSec = (int)(itemJson["EDATE"].toDouble()/1000);
-            QDateTime dt = QDateTime::fromSecsSinceEpoch(unixTimeSec);
-            QDate date = dt.date();
-            QString dateString = date.toString("yyyy-MM-dd");
-            dataModel.m_endDate = dateString;
-        }
-
-        if (itemJson.contains("MARK"))
-        {
-            dataModel.m_remark = itemJson["MARK"].toString();
-        }
-
-        if (itemJson.contains("FACTSIZE"))
-        {
-            dataModel.m_factSize = itemJson["FACTSIZE"].toString();
-        }
-
-        if (itemJson.contains("DATASOURCE"))
-        {
-            if (itemJson["DATASOURCE"].isNull())
+            int dataSource = itemJson["DATASOURCE"].toInt();
+            if (dataSource == 1)
             {
-                dataModel.m_dataSource = "--";
+                dataModel.m_dataSource = QString::fromWCharArray(L"业务办理");
+            }
+            else if (dataSource == 2)
+            {
+                dataModel.m_dataSource = QString::fromWCharArray(L"信息登记");
+            }
+            else if (dataSource == 3)
+            {
+                dataModel.m_dataSource = QString::fromWCharArray(L"历史业绩补录");
             }
             else
             {
-                int dataSource = itemJson["DATASOURCE"].toInt();
-                if (dataSource == 1)
-                {
-                    dataModel.m_dataSource = QString::fromWCharArray(L"业务办理");
-                }
-                else if (dataSource == 2)
-                {
-                    dataModel.m_dataSource = QString::fromWCharArray(L"信息登记");
-                }
-                else if (dataSource == 3)
-                {
-                    dataModel.m_dataSource = QString::fromWCharArray(L"历史业绩补录");
-                }
-                else
-                {
-                    dataModel.m_dataSource = QString::number(dataSource);
-                }
+                dataModel.m_dataSource = QString::number(dataSource);
             }
         }
-
-        if (itemJson.contains("DATALEVEL"))
-        {
-            dataModel.m_dataLevel = itemJson["DATALEVEL"].toString();
-        }
-
-        m_dataModel.append(dataModel);
     }
+
+    if (itemJson.contains("DATALEVEL"))
+    {
+        dataModel.m_dataLevel = itemJson["DATALEVEL"].toString();
+    }
+
+    m_dataModel.append(dataModel);
 }
