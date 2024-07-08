@@ -297,7 +297,14 @@ void DataCollector::processHttpReply2(QNetworkReply *reply)
             if (root.contains("data"))
             {
                 parseData2(root["data"].toObject());
-                emit runFinish(COLLECT_SUCCESS);
+                if (m_dataModel.size() > 0)
+                {
+                    emit runFinish(COLLECT_SUCCESS);
+                }
+                else
+                {
+                    emit runFinish(COLLECT_ERROR_NOT_EXIST);
+                }
                 return;
             }
             else
@@ -351,6 +358,10 @@ void DataCollector::parseData2(const QJsonObject& itemJson)
     {
         qulonglong projectNum = (qulonglong)(itemJson["PRJNUM"].toDouble());
         dataModel.m_id = QString::number(projectNum);
+    }
+    if (dataModel.m_id.isEmpty())
+    {
+        return;
     }
 
     if (itemJson.contains("FINPRJNAME"))
