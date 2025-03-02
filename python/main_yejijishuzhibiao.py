@@ -21,8 +21,8 @@ def save_datas(datas):
         return
 
     # 根据最后一个数据获取表格文件名
-    data_id = datas[-1].id
-    index = (data_id - 1) // Setting.get().yjjszb_count_per_file_count_per_file + 1
+    data_id = int(datas[-1].id)
+    index = (data_id - 1) // Setting.get().yjjszb_count_per_file + 1
     excel_file_path = os.path.join(g_yjjszb_data_path, '业绩技术指标{}.xlsx'.format(index))
     if not os.path.exists(excel_file_path):
         src_excel_file = os.path.join(g_config_path, '业绩技术指标模板.xlsx')
@@ -62,6 +62,7 @@ def main():
     not_has_data_count = 0  # 连续没有数据的个数
     begin_collect_id = max(Setting.get().yjjszb_begin_id, YjjszbStateUtil.get().next_collect_id)
     for collect_id in range(begin_collect_id, Setting.get().yjjszb_end_id):
+        data = None
         for _ in range(100000000):
             time.sleep(Setting.get().yjjszb_collect_interval)
             print('开始采集第{}个业绩技术指标'.format(collect_id))
@@ -74,6 +75,9 @@ def main():
                 not_has_data_count = 0
                 datas.append(data)
             break
+
+        if data is None:
+            continue
 
         for _ in range(100000000):
             time.sleep(Setting.get().yjjszb_collect_interval)

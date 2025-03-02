@@ -21,7 +21,7 @@ def save_datas(datas):
         return
 
     # 根据最后一个数据获取表格文件名
-    data_id = datas[-1].id
+    data_id = int(datas[-1].id)
     index = (data_id - 1) // Setting.get().jgys_count_per_file + 1
     excel_file_path = os.path.join(g_jgys_data_path, '竣工验收{}.xlsx'.format(index))
     if not os.path.exists(excel_file_path):

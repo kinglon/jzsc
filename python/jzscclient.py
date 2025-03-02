@@ -84,8 +84,10 @@ class JzscClient:
                 jungongyanshou.data_level = str(data_object['DATALEVEL'])
                 jungongyanshou.shigong_license_id = data_object['BUILDERLICENCENUM']
                 jungongyanshou.actual_use_money = str(data_object['FACTCOST'])
-                jungongyanshou.begin_date = datetime.fromtimestamp(float(data_object['BDATE'])/1000).strftime('%Y-%m-%d')
-                jungongyanshou.end_date = datetime.fromtimestamp(float(data_object['EDATE'])/1000).strftime('%Y-%m-%d')
+                if 'BDATE' in data_object and data_object['BDATE']:
+                    jungongyanshou.begin_date = datetime.fromtimestamp(float(data_object['BDATE'])/1000).strftime('%Y-%m-%d')
+                if 'EDATE' in data_object and data_object['EDATE']:
+                    jungongyanshou.end_date = datetime.fromtimestamp(float(data_object['EDATE'])/1000).strftime('%Y-%m-%d')
                 jungongyanshou.data_source = JzscClient.get_jungongyanshou_data_source(data_object)
                 jungongyanshou.construct_scale = data_object['FACTSIZE']
                 jungongyanshou.remark = data_object['MARK']
@@ -133,6 +135,9 @@ class JzscClient:
                 data = self.decode_response(data)
                 root = json.loads(data)
 
+                if root['code'] == 2000:
+                    return True, None, ''
+
                 if root['code'] != 200:
                     print("查询业绩技术指标失败，错误是：code={}".format(root['code']))
                     return error_result
@@ -147,12 +152,14 @@ class JzscClient:
 
                 jishuzhibiao = YejiJiShuZhibiao()
                 jishuzhibiao.id = str(jishuzhibiao_id)
-                jishuzhibiao.project_id = data_object['PRJNUM']
+                jishuzhibiao.project_id = str(data_object['PRJNUM'])
                 jishuzhibiao.zizibiaozhun = data_object['APTITUDECONTENT']
-                jishuzhibiao.begin_date = datetime.fromtimestamp(float(data_object['BDATE']) / 1000).strftime(
-                    '%Y-%m-%d')
-                jishuzhibiao.end_date = datetime.fromtimestamp(float(data_object['EDATE']) / 1000).strftime(
-                    '%Y-%m-%d')
+                if 'BDATE' in data_object and data_object['BDATE']:
+                    jishuzhibiao.begin_date = datetime.fromtimestamp(float(data_object['BDATE']) / 1000).strftime(
+                        '%Y-%m-%d')
+                if 'EDATE' in data_object and data_object['EDATE']:
+                    jishuzhibiao.end_date = datetime.fromtimestamp(float(data_object['EDATE']) / 1000).strftime(
+                        '%Y-%m-%d')
                 jishuzhibiao.guimo_dengji = data_object['TECHPARAMINFO']
                 jishuzhibiao.data_level = data_object['DATALEVEL']
                 jishuzhibiao.yejijilubianhao = data_object['PERFNUM']
@@ -171,6 +178,8 @@ class JzscClient:
         value = person_object['PRJDUTY']
         if value == 2:
             return '技术负责人'
+        elif value == 6:
+            return '项目经理'
         else:
             return str(value)
 

@@ -13,12 +13,13 @@ def do_merge(data_path, excel_template):
     for excel_file in os.listdir(data_path):
         if excel_file.find('合并') >= 0:
             continue
-        excel_files.append(excel_file)
+        excel_files.append(os.path.join(data_path, excel_file))
 
     if len(excel_files) == 0:
         print('没有表格需要合并')
         return
 
+    excel_files.sort(key=os.path.getctime)
     merge_excel_file = os.path.join(data_path, '合并.xlsx')
     if os.path.exists(merge_excel_file):
         os.remove(merge_excel_file)
@@ -28,7 +29,7 @@ def do_merge(data_path, excel_template):
     merge_sheet = merge_workbook.worksheets[0]
     current_row = 2
     for excel_file in excel_files:
-        print('合并表格：{}'.format(excel_file))
+        print('合并表格：{}'.format(os.path.split(excel_file)[1]))
         workbook = openpyxl.load_workbook(os.path.join(data_path, excel_file))
         sheet = workbook.worksheets[0]
         for row in range(2, sheet.max_row+1):
