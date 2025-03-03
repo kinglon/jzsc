@@ -66,6 +66,9 @@ def main():
             print('开始采集第{}个'.format(collect_id))
             request_success, data, _ = jzsc_client.get_jungongyanshou(collect_id)
             if not request_success:
+                if jzsc_client.forbidden:
+                    print('服务器禁止访问，2分钟后再试')
+                    time.sleep(120)
                 continue
             if data is None:
                 not_has_data_count += 1

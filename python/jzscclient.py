@@ -16,6 +16,7 @@ class JzscClient:
         self.timeout = 20
         self.iv = self.int_array_to_bytes([808530483, 875902519, 943276354, 1128547654])
         self.key = self.int_array_to_bytes([1148467306, 964118391, 624314466, 2019968622])
+        self.forbidden = False
 
     @staticmethod
     def int_array_to_bytes(intarray):
@@ -57,9 +58,12 @@ class JzscClient:
             headers = self.get_common_request_header()
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
+            self.forbidden = False
             response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
             if not response.ok:
                 print("查询竣工验收失败，错误是：{}".format(response))
+                if response.status_code == 403:
+                    self.forbidden = True
                 return error_result
             else:
                 data = response.content.decode('utf-8')
@@ -126,9 +130,12 @@ class JzscClient:
             headers = self.get_common_request_header()
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
+            self.forbidden = False
             response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
             if not response.ok:
                 print("查询业绩技术指标失败，错误是：{}".format(response))
+                if response.status_code == 403:
+                    self.forbidden = True
                 return error_result
             else:
                 data = response.content.decode('utf-8')
@@ -196,8 +203,11 @@ class JzscClient:
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
             response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            self.forbidden = False
             if not response.ok:
                 print("查询业绩技术指标的相关人员失败，错误是：{}".format(response))
+                if response.status_code == 403:
+                    self.forbidden = True
                 return error_result
             else:
                 data = response.content.decode('utf-8')
