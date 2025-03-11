@@ -1,5 +1,7 @@
+代理IP提取链接=http://api.tianqiip.com/getip?secret=du1uati3axzjy7bf&num=1&type=json&port=1&time=3&ts=1&mr=1&sign=4ed903f61ca021aa4a8ec9f2bc54f8d6
+
 # 竣工验收采集间隔毫秒数
-竣工验收采集间隔=1000
+竣工验收采集间隔=400
 
 # 竣工验收采集ID范围
 竣工验收采集开始ID=1

@@ -1,9 +1,10 @@
 import os
 import shutil
 import time
-
+from datetime import datetime
 import openpyxl
 
+from ipproxyclient import IpProxyClient
 from jzscclient import JzscClient
 from setting import Setting
 from stateutil_jungongyanshou import JgysStateUtil
@@ -59,16 +60,32 @@ def main():
     jzsc_client = JzscClient()
     datas = []
     not_has_data_count = 0  # 连续没有数据的个数
+    proxy_expire_time = 0
     begin_collect_id = max(Setting.get().jgys_begin_id, JgysStateUtil.get().next_collect_id)
     for collect_id in range(begin_collect_id, Setting.get().jgys_end_id):
-        for _ in range(100000000):
+        while True:
             time.sleep(Setting.get().jgys_collect_interval)
+
+            # 过期前10秒开始换代理
+            if proxy_expire_time == 0 or datetime.now().timestamp() + 10 >= proxy_expire_time:
+                proxy_client = IpProxyClient()
+                proxy_client.link = Setting.get().proxy_ip_link
+                while True:
+                    time.sleep(1)
+                    print('获取代理IP地址')
+                    request_success, proxy, _ = proxy_client.extract_ip()
+                    if not request_success:
+                        continue
+                    jzsc_client.proxies['http'] = 'http://{}:{}'.format(proxy[0], proxy[1])
+                    jzsc_client.proxies['https'] = jzsc_client.proxies['http']
+                    proxy_expire_time = proxy[2]
+                    break
+
             print('开始采集第{}个'.format(collect_id))
             request_success, data, _ = jzsc_client.get_jungongyanshou(collect_id)
             if not request_success:
                 if jzsc_client.forbidden:
-                    print('服务器禁止访问，2分钟后再试')
-                    time.sleep(120)
+                    print('服务器禁止访问')
                 continue
             if data is None:
                 not_has_data_count += 1

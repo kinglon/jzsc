@@ -31,6 +31,9 @@ class Setting:
         # 业绩技术指标每个表格个数
         self.yjjszb_count_per_file = 5000
 
+        # 代理IP提取链接
+        self.proxy_ip_link = ''
+
         self.load()
 
     def load(self):
@@ -45,9 +48,10 @@ class Setting:
                 if processed_line.find('#') == 0:
                     # 注释行忽略
                     continue
-                parts = processed_line.split('=')
-                if len(parts) != 2:
+                pos = processed_line.find('=')
+                if pos < 0:
                     continue
+                parts = [processed_line[0: pos], processed_line[pos + 1:]]
                 key = parts[0].strip()
                 value = parts[1].strip()
                 if key == '竣工验收采集间隔':
@@ -66,3 +70,5 @@ class Setting:
                     self.yjjszb_end_id = int(value)
                 elif key == '业绩技术指标每个表格个数':
                     self.yjjszb_count_per_file = int(value)
+                elif key == '代理IP提取链接':
+                    self.proxy_ip_link = value

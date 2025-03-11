@@ -11,7 +11,7 @@ from datamodel import *
 
 class JzscClient:
     def __init__(self):
-        self.host = 'https://jzsc.mohurd.gov.cn/'
+        self.host = 'https://jzsc.mohurd.gov.cn'
         self.proxies = {"http": "", "https": ""}
         self.timeout = 20
         self.iv = self.int_array_to_bytes([808530483, 875902519, 943276354, 1128547654])
