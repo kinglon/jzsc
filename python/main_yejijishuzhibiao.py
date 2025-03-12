@@ -1,9 +1,9 @@
 import os
 import shutil
 import time
-
+from ipproxyclient import IpProxyClient
 import openpyxl
-
+from datetime import datetime
 from jzscclient import JzscClient
 from setting import Setting
 from stateutil_yejijishuzhibiao import YjjszbStateUtil
@@ -40,7 +40,7 @@ def save_datas(datas):
                 sheet.cell(current_row, 3, data.zizibiaozhun)
                 sheet.cell(current_row, 4, data.begin_date)
                 sheet.cell(current_row, 5, data.end_date)
-                sheet.cell(current_row, 6, data.guimo_dengji)
+                sheet.cell(current_row, 6, data.guimo_dengji.replace('\x00', ''))
                 sheet.cell(current_row, 7, data.data_level)
                 for person in data.people:
                     sheet.cell(current_row, 8, person.name)
@@ -60,18 +60,46 @@ def main():
     jzsc_client = JzscClient()
     datas = []
     not_has_data_count = 0  # 连续没有数据的个数
+    failed_count = 0  # 连续请求失败的次数
+    failed_proxy_count = 0  # 连续失败代理IP数
+    proxy_expire_time = 0
     begin_collect_id = max(Setting.get().yjjszb_begin_id, YjjszbStateUtil.get().next_collect_id)
     for collect_id in range(begin_collect_id, Setting.get().yjjszb_end_id):
         data = None
-        for _ in range(100000000):
+        while True:
             time.sleep(Setting.get().yjjszb_collect_interval)
+
+            if failed_proxy_count >= 20:
+                print('连续{}个代理IP不能使用，退出程序'.format(failed_proxy_count))
+                return
+
+            # 过期前10秒开始换代理
+            if proxy_expire_time == 0 or datetime.now().timestamp() + 10 >= proxy_expire_time or failed_count >= 5:
+                failed_count = 0
+                failed_proxy_count += 1
+                proxy_client = IpProxyClient()
+                proxy_client.link = Setting.get().proxy_ip_link
+                while True:
+                    time.sleep(1)
+                    print('获取代理IP地址')
+                    request_success, proxy, _ = proxy_client.extract_ip()
+                    if not request_success:
+                        continue
+                    jzsc_client.proxies['http'] = 'http://{}:{}'.format(proxy[0], proxy[1])
+                    jzsc_client.proxies['https'] = jzsc_client.proxies['http']
+                    proxy_expire_time = proxy[2]
+                    break
+
             print('开始采集第{}个业绩技术指标'.format(collect_id))
             request_success, data, _ = jzsc_client.get_jishuzhibiao(collect_id)
             if not request_success:
+                failed_count += 1
                 if jzsc_client.forbidden:
-                    print('服务器禁止访问，2分钟后再试')
-                    time.sleep(120)
+                    print('服务器禁止访问')
                 continue
+
+            failed_count = 0
+            failed_proxy_count = 0
             if data is None:
                 not_has_data_count += 1
             else:
@@ -82,15 +110,40 @@ def main():
         if data is None:
             continue
 
-        for _ in range(100000000):
+        while True:
             time.sleep(Setting.get().yjjszb_collect_interval)
+
+            if failed_proxy_count >= 20:
+                print('连续{}个代理IP不能使用，退出程序'.format(failed_proxy_count))
+                return
+
+            # 过期前10秒开始换代理
+            if proxy_expire_time == 0 or datetime.now().timestamp() + 10 >= proxy_expire_time or failed_count >= 5:
+                failed_count = 0
+                failed_proxy_count += 1
+                proxy_client = IpProxyClient()
+                proxy_client.link = Setting.get().proxy_ip_link
+                while True:
+                    time.sleep(1)
+                    print('获取代理IP地址')
+                    request_success, proxy, _ = proxy_client.extract_ip()
+                    if not request_success:
+                        continue
+                    jzsc_client.proxies['http'] = 'http://{}:{}'.format(proxy[0], proxy[1])
+                    jzsc_client.proxies['https'] = jzsc_client.proxies['http']
+                    proxy_expire_time = proxy[2]
+                    break
+
             print('开始采集第{}个业绩技术指标的相关人员'.format(collect_id))
             request_success, people, _ = jzsc_client.get_xiangguanrenyuan(datas[-1].yejijilubianhao)
             if not request_success:
+                failed_count += 1
                 if jzsc_client.forbidden:
-                    print('服务器禁止访问，2分钟后再试')
-                    time.sleep(120)
+                    print('服务器禁止访问')
                 continue
+
+            failed_count = 0
+            failed_proxy_count = 0
             datas[-1].people = people
             break
 

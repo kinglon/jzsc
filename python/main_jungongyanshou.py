@@ -46,7 +46,7 @@ def save_datas(datas):
                 sheet.cell(current_row, 7, data.end_date)
                 sheet.cell(current_row, 8, data.data_source)
                 sheet.cell(current_row, 9, data.construct_scale)
-                sheet.cell(current_row, 10, data.remark)
+                sheet.cell(current_row, 10, data.remark.replace('\x00', ''))
             workbook.save(excel_file_path)
             break
         except Exception as e:
@@ -60,14 +60,22 @@ def main():
     jzsc_client = JzscClient()
     datas = []
     not_has_data_count = 0  # 连续没有数据的个数
+    failed_count = 0  # 连续请求失败的次数
+    failed_proxy_count = 0  # 连续失败代理IP数
     proxy_expire_time = 0
     begin_collect_id = max(Setting.get().jgys_begin_id, JgysStateUtil.get().next_collect_id)
     for collect_id in range(begin_collect_id, Setting.get().jgys_end_id):
         while True:
             time.sleep(Setting.get().jgys_collect_interval)
 
+            if failed_proxy_count >= 20:
+                print('连续{}个代理IP不能使用，退出程序'.format(failed_proxy_count))
+                return
+
             # 过期前10秒开始换代理
-            if proxy_expire_time == 0 or datetime.now().timestamp() + 10 >= proxy_expire_time:
+            if proxy_expire_time == 0 or datetime.now().timestamp() + 10 >= proxy_expire_time or failed_count >= 5:
+                failed_count = 0
+                failed_proxy_count += 1
                 proxy_client = IpProxyClient()
                 proxy_client.link = Setting.get().proxy_ip_link
                 while True:
@@ -84,9 +92,13 @@ def main():
             print('开始采集第{}个'.format(collect_id))
             request_success, data, _ = jzsc_client.get_jungongyanshou(collect_id)
             if not request_success:
+                failed_count += 1
                 if jzsc_client.forbidden:
                     print('服务器禁止访问')
                 continue
+
+            failed_count = 0
+            failed_proxy_count = 0
             if data is None:
                 not_has_data_count += 1
             else:

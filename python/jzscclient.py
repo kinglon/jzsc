@@ -88,9 +88,9 @@ class JzscClient:
                 jungongyanshou.data_level = str(data_object['DATALEVEL'])
                 jungongyanshou.shigong_license_id = data_object['BUILDERLICENCENUM']
                 jungongyanshou.actual_use_money = str(data_object['FACTCOST'])
-                if 'BDATE' in data_object and data_object['BDATE']:
+                if 'BDATE' in data_object and data_object['BDATE'] and float(data_object['BDATE']) > 0:
                     jungongyanshou.begin_date = datetime.fromtimestamp(float(data_object['BDATE'])/1000).strftime('%Y-%m-%d')
-                if 'EDATE' in data_object and data_object['EDATE']:
+                if 'EDATE' in data_object and data_object['EDATE'] and float(data_object['EDATE']) > 0:
                     jungongyanshou.end_date = datetime.fromtimestamp(float(data_object['EDATE'])/1000).strftime('%Y-%m-%d')
                 jungongyanshou.data_source = JzscClient.get_jungongyanshou_data_source(data_object)
                 jungongyanshou.construct_scale = data_object['FACTSIZE']
@@ -183,8 +183,16 @@ class JzscClient:
             return ''
 
         value = person_object['PRJDUTY']
-        if value == 2:
+        if value == 1:
+            return '项目负责人'
+        elif value == 2:
             return '技术负责人'
+        elif value == 3:
+            return '专业负责人'
+        elif value == 4:
+            return '主要设计人'
+        elif value == 5:
+            return '总监理工程师'
         elif value == 6:
             return '项目经理'
         else:

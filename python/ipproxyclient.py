@@ -49,7 +49,7 @@ class IpProxyClient:
                 port = root['data'][0]['port']
                 end_time_string = root['data'][0]['expire']
                 end_time_ts = int(datetime.strptime(end_time_string, '%Y-%m-%d %H:%M:%S').timestamp())
-                print('提取IP成功，IP是{}，端口是{}，到期时间是{}'.format(ip, port, end_time_ts))
+                print('提取IP成功，IP是{}，端口是{}，到期时间是{}'.format(ip, port, end_time_string))
                 return True, (ip, port, end_time_ts), ''
         except Exception as e:
             print("提取IP失败，错误是：{}".format(e))
