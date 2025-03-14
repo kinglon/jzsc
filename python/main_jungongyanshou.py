@@ -17,6 +17,11 @@ g_jgys_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dat
 os.makedirs(g_jgys_data_path, exist_ok=True)
 
 
+# 移除无效字符
+def remove_invalid_char(content):
+    return str(content).replace('\x00', '')
+
+
 def save_datas(datas):
     if len(datas) == 0:
         return
@@ -37,16 +42,16 @@ def save_datas(datas):
             for row in range(len(datas)):
                 data = datas[row]
                 current_row = begin_row_index + row
-                sheet.cell(current_row, 1, data.id)
-                sheet.cell(current_row, 2, data.project_id)
-                sheet.cell(current_row, 3, data.data_level)
-                sheet.cell(current_row, 4, data.shigong_license_id)
-                sheet.cell(current_row, 5, data.actual_use_money)
-                sheet.cell(current_row, 6, data.begin_date)
-                sheet.cell(current_row, 7, data.end_date)
-                sheet.cell(current_row, 8, data.data_source)
-                sheet.cell(current_row, 9, data.construct_scale)
-                sheet.cell(current_row, 10, data.remark.replace('\x00', ''))
+                sheet.cell(current_row, 1, remove_invalid_char(data.id))
+                sheet.cell(current_row, 2, remove_invalid_char(data.project_id))
+                sheet.cell(current_row, 3, remove_invalid_char(data.data_level))
+                sheet.cell(current_row, 4, remove_invalid_char(data.shigong_license_id))
+                sheet.cell(current_row, 5, remove_invalid_char(data.actual_use_money))
+                sheet.cell(current_row, 6, remove_invalid_char(data.begin_date))
+                sheet.cell(current_row, 7, remove_invalid_char(data.end_date))
+                sheet.cell(current_row, 8, remove_invalid_char(data.data_source))
+                sheet.cell(current_row, 9, remove_invalid_char(data.construct_scale))
+                sheet.cell(current_row, 10, remove_invalid_char(data.remark))
             workbook.save(excel_file_path)
             break
         except Exception as e:

@@ -16,6 +16,11 @@ g_yjjszb_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'd
 os.makedirs(g_yjjszb_data_path, exist_ok=True)
 
 
+# 移除无效字符
+def remove_invalid_char(content):
+    return str(content).replace('\x00', '')
+
+
 def save_datas(datas):
     if len(datas) == 0:
         return
@@ -35,17 +40,17 @@ def save_datas(datas):
             current_row = sheet.max_row + 1
             for row in range(len(datas)):
                 data = datas[row]
-                sheet.cell(current_row, 1, data.id)
-                sheet.cell(current_row, 2, data.project_id)
-                sheet.cell(current_row, 3, data.zizibiaozhun)
-                sheet.cell(current_row, 4, data.begin_date)
-                sheet.cell(current_row, 5, data.end_date)
-                sheet.cell(current_row, 6, data.guimo_dengji.replace('\x00', ''))
-                sheet.cell(current_row, 7, data.data_level)
+                sheet.cell(current_row, 1, remove_invalid_char(data.id))
+                sheet.cell(current_row, 2, remove_invalid_char(data.project_id))
+                sheet.cell(current_row, 3, remove_invalid_char(data.zizibiaozhun))
+                sheet.cell(current_row, 4, remove_invalid_char(data.begin_date))
+                sheet.cell(current_row, 5, remove_invalid_char(data.end_date))
+                sheet.cell(current_row, 6, remove_invalid_char(data.guimo_dengji))
+                sheet.cell(current_row, 7, remove_invalid_char(data.data_level))
                 for person in data.people:
-                    sheet.cell(current_row, 8, person.name)
-                    sheet.cell(current_row, 9, person.shenfenzheng_id)
-                    sheet.cell(current_row, 10, person.role)
+                    sheet.cell(current_row, 8, remove_invalid_char(person.name))
+                    sheet.cell(current_row, 9, remove_invalid_char(person.shenfenzheng_id))
+                    sheet.cell(current_row, 10, remove_invalid_char(person.role))
                     current_row += 1
             workbook.save(excel_file_path)
             break
@@ -65,7 +70,6 @@ def main():
     proxy_expire_time = 0
     begin_collect_id = max(Setting.get().yjjszb_begin_id, YjjszbStateUtil.get().next_collect_id)
     for collect_id in range(begin_collect_id, Setting.get().yjjszb_end_id):
-        data = None
         while True:
             time.sleep(Setting.get().yjjszb_collect_interval)
 
