@@ -47,6 +47,7 @@ def save_datas(datas):
                 sheet.cell(current_row, 5, remove_invalid_char(data.end_date))
                 sheet.cell(current_row, 6, remove_invalid_char(data.guimo_dengji))
                 sheet.cell(current_row, 7, remove_invalid_char(data.data_level))
+                sheet.cell(current_row, 11, remove_invalid_char(data.enterprise_name))
                 for person in data.people:
                     sheet.cell(current_row, 8, remove_invalid_char(person.name))
                     sheet.cell(current_row, 9, remove_invalid_char(person.shenfenzheng_id))

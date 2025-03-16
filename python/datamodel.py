@@ -72,5 +72,8 @@ class YejiJiShuZhibiao:
         # 业绩记录编号
         self.yejijilubianhao = ''
 
+        # 企业名称
+        self.enterprise_name = ''
+
         # 相关人员
         self.people = []
