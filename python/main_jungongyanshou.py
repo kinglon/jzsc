@@ -19,7 +19,12 @@ os.makedirs(g_jgys_data_path, exist_ok=True)
 
 # 移除无效字符
 def remove_invalid_char(content):
-    return str(content).replace('\x00', '')
+    if content is None:
+        return ''
+
+    # 去除不可打印字符
+    cleaned_str = ''.join(char for char in content if char.isprintable())
+    return cleaned_str
 
 
 def save_datas(datas):
