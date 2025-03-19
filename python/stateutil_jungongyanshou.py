@@ -14,7 +14,7 @@ class JgysStateUtil:
 
     def __init__(self):
         # 下一个采集ID
-        self.next_collect_id = 1
+        self.next_collect_id = 100000000
 
         self.load()
 

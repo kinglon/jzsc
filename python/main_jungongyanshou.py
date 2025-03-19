@@ -33,7 +33,7 @@ def save_datas(datas):
 
     # 根据最后一个数据获取表格文件名
     data_id = int(datas[-1].id)
-    index = (data_id - 1) // Setting.get().jgys_count_per_file + 1
+    index = data_id // Setting.get().jgys_count_per_file + 1
     excel_file_path = os.path.join(g_jgys_data_path, '竣工验收{}.xlsx'.format(index))
     if not os.path.exists(excel_file_path):
         src_excel_file = os.path.join(g_config_path, '竣工验收模板.xlsx')
@@ -73,8 +73,9 @@ def main():
     failed_count = 0  # 连续请求失败的次数
     failed_proxy_count = 0  # 连续失败代理IP数
     proxy_expire_time = 0
-    begin_collect_id = max(Setting.get().jgys_begin_id, JgysStateUtil.get().next_collect_id)
-    for collect_id in range(begin_collect_id, Setting.get().jgys_end_id):
+    # 逆序采集
+    begin_collect_id = min(Setting.get().jgys_end_id, JgysStateUtil.get().next_collect_id)
+    for collect_id in range(begin_collect_id, Setting.get().jgys_begin_id, -1):
         while True:
             time.sleep(Setting.get().jgys_collect_interval)
 
@@ -110,6 +111,7 @@ def main():
             failed_count = 0
             failed_proxy_count = 0
             if data is None:
+                print('第{}个没有数据'.format(collect_id))
                 not_has_data_count += 1
             else:
                 not_has_data_count = 0
@@ -124,7 +126,7 @@ def main():
             print('保存数据完成')
 
             if len(datas) > 0:
-                JgysStateUtil.get().update_next_collect_id(int(datas[-1].id)+1)
+                JgysStateUtil.get().update_next_collect_id(int(datas[-1].id)-1)
             datas = []
 
         if is_finish:
