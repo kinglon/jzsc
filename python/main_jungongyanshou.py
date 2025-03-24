@@ -119,7 +119,7 @@ def main():
             break
 
         # 采集结束或每采集到200条数据或需要换新文件的时候就保存
-        is_finish = not_has_data_count >= 100
+        is_finish = not_has_data_count >= 1000
         if is_finish or len(datas) >= 200 or collect_id % Setting.get().jgys_count_per_file == 0:
             print('保存数据')
             save_datas(datas)
@@ -132,6 +132,14 @@ def main():
         if is_finish:
             print('采集完成')
             break
+            
+    # 最后还有数据没保存
+    if len(datas) > 0:
+        print('保存数据')
+        save_datas(datas)
+        print('保存数据完成')
+        JgysStateUtil.get().update_next_collect_id(int(datas[-1].id)-1)
+        print('采集完成')        
 
 
 if __name__ == '__main__':

@@ -53,11 +53,14 @@ def save_datas(datas):
                 sheet.cell(current_row, 6, remove_invalid_char(data.guimo_dengji))
                 sheet.cell(current_row, 7, remove_invalid_char(data.data_level))
                 sheet.cell(current_row, 11, remove_invalid_char(data.enterprise_name))
-                for person in data.people:
+                for i in range(len(data.people)):
+                    person = data.people[i]
+                    if i != 0:
+                        current_row += 1
                     sheet.cell(current_row, 8, remove_invalid_char(person.name))
                     sheet.cell(current_row, 9, remove_invalid_char(person.shenfenzheng_id))
-                    sheet.cell(current_row, 10, remove_invalid_char(person.role))
-                    current_row += 1
+                    sheet.cell(current_row, 10, remove_invalid_char(person.role))                    
+                current_row += 1
             workbook.save(excel_file_path)
             break
         except Exception as e:
@@ -118,6 +121,7 @@ def main():
             break
 
         if data is None:
+            print('第{}个业绩技术指标没有数据'.format(collect_id))
             continue
 
         while True:
@@ -158,7 +162,7 @@ def main():
             break
 
         # 采集结束或每采集到200条数据或需要换新文件的时候就保存
-        is_finish = not_has_data_count >= 100
+        is_finish = not_has_data_count >= 1000
         if is_finish or len(datas) >= 200 or collect_id % Setting.get().yjjszb_count_per_file == 0:
             print('保存数据')
             save_datas(datas)
@@ -171,6 +175,14 @@ def main():
         if is_finish:
             print('采集完成')
             break
+            
+    # 最后还有数据需要保存
+    if len(datas) > 0:
+        print('保存数据')
+        save_datas(datas)
+        print('保存数据完成')
+        YjjszbStateUtil.get().update_next_collect_id(int(datas[-1].id)+1)
+        print('采集完成')
 
 
 if __name__ == '__main__':
