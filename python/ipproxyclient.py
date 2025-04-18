@@ -20,7 +20,7 @@ class IpProxyClient:
         self.link = ''
 
     # 提取IP
-    # 返回 (request success, None|(IP地址, port), error_message)
+    # 返回 (request success, None|(IP地址, port, 到期时间), error_message)
     def extract_ip(self):
         error_result = (False, None, '')
 
