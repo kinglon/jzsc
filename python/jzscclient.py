@@ -148,6 +148,7 @@ class JzscClient:
                 data = self.decode_response(data)
                 root = json.loads(data)
 
+                # 该ID没有查到任何数据
                 if root['code'] == 2000:
                     return True, None, ''
 
@@ -181,6 +182,40 @@ class JzscClient:
                 return True, jishuzhibiao, ''
         except Exception as e:
             print("查询业绩技术指标失败，错误是：{}".format(e))
+            return error_result
+
+    # 虚假业绩
+    # page 页码，从0开始
+    # 返回 (request success, 虚假业绩列表, error_message)
+    def get_fake_yeji(self, page):
+        error_result = (False, [], '')
+
+        try:
+            uri = f'/APi/webApi/dataservice/query/project/isFake/all?isFake=1&pg={page}&pgsz=15'
+            url = self.host + uri
+            headers = self.get_common_request_header()
+            headers['Timeout'] = '30000'
+            headers['V'] = '231012'
+            self.forbidden = False
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            if not response.ok:
+                print("查询虚假业绩失败，错误是：{}".format(response))
+                if response.status_code == 403:
+                    self.forbidden = True
+                return error_result
+            else:
+                data = response.content.decode('utf-8')
+                data = self.decode_response(data)
+                root = json.loads(data)
+
+                if root['code'] != 200:
+                    print("查询虚假业绩失败，错误是：code={}".format(root['code']))
+                    return error_result
+
+                fake_list = root['data']['list']
+                return True, fake_list, ''
+        except Exception as e:
+            print("查询虚假业绩失败，错误是：{}".format(e))
             return error_result
 
     # 获取相关人员在项目中所起的作用
@@ -261,7 +296,8 @@ def test():
     # response_data = jzsc_client.decode_response(response_data)
     # print(response_data)
     # jzsc_client.get_jungongyanshou(118784)
-    jzsc_client.get_jishuzhibiao(100)
+    # jzsc_client.get_jishuzhibiao(1180239)
+    jzsc_client.get_fake_yeji(0)
     # jzsc_client.get_xiangguanrenyuan('YJ-4501082411210001-007')
 
 
