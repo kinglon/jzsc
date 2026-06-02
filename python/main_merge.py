@@ -2,11 +2,8 @@ import os
 import shutil
 import sys
 import time
-
 import openpyxl
-
 from logutil import LogUtil
-
 
 def do_merge(data_path, excel_template):
     excel_files = []
@@ -54,9 +51,9 @@ def main():
     if len(sys.argv) < 2:
         raise RuntimeError('输入参数有误')
 
-    # 1 合并竣工验收表格， 2 合并业绩技术指标表格
+    # 1 合并竣工验收表格， 2 合并业绩技术指标表格, 3 合并竣工验收备案表格
     data_type = sys.argv[1]
-    if data_type != '1' and data_type != '2':
+    if data_type != '1' and data_type != '2' and data_type != '3':
         raise RuntimeError('输入参数有误')
 
     data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -69,9 +66,12 @@ def main():
         yjjszb_data_path = os.path.join(data_path, '业绩技术指标')
         yjjszb_excel_template = os.path.join(config_path, '业绩技术指标模板.xlsx')
         do_merge(yjjszb_data_path, yjjszb_excel_template)
+    elif data_type == '3':
+        jgys_data_path = os.path.join(data_path, '竣工验收备案')
+        jgys_excel_template = os.path.join(config_path, '竣工验收模板.xlsx')
+        do_merge(jgys_data_path, jgys_excel_template)
 
     print('完成')
-
 
 if __name__ == '__main__':
     LogUtil.file_name_prefix = 'merge'

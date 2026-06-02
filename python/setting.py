@@ -18,6 +18,10 @@ class Setting:
         self.jgys_begin_id = 1
         self.jgys_end_id = 100000000
 
+        # 竣工验收备案采集ID范围
+        self.jgys_beian_begin_id = 1
+        self.jgys_beian_end_id = 100000000
+
         # 竣工验收每个表格个数
         self.jgys_count_per_file = 5000
 
@@ -60,6 +64,10 @@ class Setting:
                     self.jgys_begin_id = int(value)
                 elif key == '竣工验收采集结束ID':
                     self.jgys_end_id = int(value)
+                elif key == '竣工验收备案采集开始ID':
+                    self.jgys_beian_begin_id = int(value)
+                elif key == '竣工验收备案采集结束ID':
+                    self.jgys_beian_end_id = int(value)
                 elif key == '竣工验收每个表格个数':
                     self.jgys_count_per_file = int(value)
                 elif key == '业绩技术指标采集间隔':

@@ -1,3 +1,3 @@
 @echo off
 cd /d %~dp0
-start cmd /k "python main_jungongyanshou.py"
+start cmd /k "python main_jungongyanshou.py 2"
