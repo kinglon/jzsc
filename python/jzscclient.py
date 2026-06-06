@@ -59,7 +59,7 @@ class JzscClient:
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
             self.forbidden = False
-            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=self.timeout)
             if not response.ok:
                 print("查询竣工验收备案失败，错误是：{}".format(response))
                 if response.status_code == 403:
@@ -124,7 +124,7 @@ class JzscClient:
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
             self.forbidden = False
-            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=self.timeout)
             if not response.ok:
                 print("查询竣工验收失败，错误是：{}".format(response))
                 if response.status_code == 403:
@@ -204,7 +204,7 @@ class JzscClient:
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
             self.forbidden = False
-            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=self.timeout)
             if not response.ok:
                 print("查询业绩技术指标失败，错误是：{}".format(response))
                 if response.status_code == 403:
@@ -264,7 +264,7 @@ class JzscClient:
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
             self.forbidden = False
-            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=self.timeout)
             if not response.ok:
                 print("查询虚假业绩失败，错误是：{}".format(response))
                 if response.status_code == 403:
@@ -319,7 +319,7 @@ class JzscClient:
             headers = self.get_common_request_header()
             headers['Timeout'] = '30000'
             headers['V'] = '231012'
-            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=5)
+            response = requests.get(url, headers=headers, proxies=self.proxies, timeout=self.timeout)
             self.forbidden = False
             if not response.ok:
                 print("查询业绩技术指标的相关人员失败，错误是：{}".format(response))
