@@ -236,11 +236,19 @@ class JzscClient:
                 jishuzhibiao.project_id = str(data_object['PRJNUM'])
                 jishuzhibiao.zizibiaozhun = data_object['APTITUDECONTENT']
                 if 'BDATE' in data_object and data_object['BDATE']:
-                    jishuzhibiao.begin_date = datetime.fromtimestamp(float(data_object['BDATE']) / 1000).strftime(
+                    if type(data_object['BDATE']) == str:
+                        jishuzhibiao.begin_date = datetime.strptime(data_object['BDATE'], '%Y-%m-%d %H:%M:%S').strftime(
+                            '%Y-%m-%d')
+                    else:
+                        jishuzhibiao.begin_date = datetime.fromtimestamp(float(data_object['BDATE']) / 1000).strftime(
                         '%Y-%m-%d')
                 if 'EDATE' in data_object and data_object['EDATE']:
-                    jishuzhibiao.end_date = datetime.fromtimestamp(float(data_object['EDATE']) / 1000).strftime(
-                        '%Y-%m-%d')
+                    if type(data_object['EDATE']) == str:
+                        jishuzhibiao.end_date = datetime.strptime(data_object['EDATE'], '%Y-%m-%d %H:%M:%S').strftime(
+                            '%Y-%m-%d')
+                    else:
+                        jishuzhibiao.end_date = datetime.fromtimestamp(float(data_object['EDATE']) / 1000).strftime(
+                            '%Y-%m-%d')
                 jishuzhibiao.guimo_dengji = data_object['TECHPARAMINFO']
                 jishuzhibiao.data_level = data_object['DATALEVEL']
                 jishuzhibiao.yejijilubianhao = data_object['PERFNUM']
@@ -363,8 +371,8 @@ def test():
     # response_data = jzsc_client.decode_response(response_data)
     # print(response_data)
     # jzsc_client.get_jungongyanshou_beian(9995)
-    jzsc_client.get_jungongyanshou(9999)
-    # jzsc_client.get_jishuzhibiao(1180239)
+    # jzsc_client.get_jungongyanshou(10000)
+    jzsc_client.get_jishuzhibiao(186227)
     # jzsc_client.get_fake_yeji(0)
     # jzsc_client.get_xiangguanrenyuan('YJ-4501082411210001-007')
 
