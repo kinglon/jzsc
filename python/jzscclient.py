@@ -37,14 +37,16 @@ class JzscClient:
         return headers
 
     def decode_response(self, data):
-        data = bytes.fromhex(data)
-        cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        plaintext_padded = decryptor.update(data) + decryptor.finalize()
-        unpadder = padding.PKCS7(128).unpadder()
-        plaintext = unpadder.update(plaintext_padded) + unpadder.finalize()
-        plaintext = plaintext.decode('utf-8')
-        return plaintext
+        # 没有加密了
+        return data
+        # data = bytes.fromhex(data)
+        # cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv), backend=default_backend())
+        # decryptor = cipher.decryptor()
+        # plaintext_padded = decryptor.update(data) + decryptor.finalize()
+        # unpadder = padding.PKCS7(128).unpadder()
+        # plaintext = unpadder.update(plaintext_padded) + unpadder.finalize()
+        # plaintext = plaintext.decode('utf-8')
+        # return plaintext
 
     # 查询竣工验收备案
     # jungongyanshou_id 竣工验收ID
